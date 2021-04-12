@@ -14,7 +14,10 @@ void snig_inference(
   const T* val_w,
   const T bias,
   bool* is_nonzero_row_1,
-  T* Y_1
+  T* Y_1,
+  sycl::nd_item<2> item,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero
 );
 
 //-----------------------------------------------------------------------------
@@ -33,10 +36,13 @@ void snig_inference(
   const T* val_w,
   const T bias,
   bool* is_nonzero_row_1,
-  T* Y_1) {
+  T* Y_1,
+  sycl::nd_item<2> item,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero) {
 
-  int row = item.get_global_id(0);
-  int col = item.get_global_id(1);
+  //int row = item.get_global_id(0);
+  //int col = item.get_global_id(1);
   int tid = item.get_global_linear_id();
   ////int tid = threadIdx.y * blockDim.x + threadIdx.x;
   //r = blockIdx.x
@@ -46,12 +52,12 @@ void snig_inference(
 
   //num_secs is small enough to compute by each single thread
   bool is_all_zero = true;
-  for(size_t s_i = 0; s_i < num_secs; ++s_i) {
-    is_all_zero &= !is_nonzero_row_0[item.get_group(0) * num_secs + s_i];
+  for (size_t s_i = 0; s_i < num_secs; ++s_i) {
+    is_all_zero &= !is_nonzero_row_0[item.get_group(1) * num_secs + s_i];
     ////is_all_zero &= !is_nonzero_row_0[blockIdx.x * num_secs + s_i];
   }
 
-  if(is_all_zero) {
+  if (is_all_zero) {
     //incremental memory resetting
     //avoid calling cudaMemset
     ////if(is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y]) {
@@ -63,14 +69,16 @@ void snig_inference(
     ////    is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = false;
     ////  } 
     ////}
-    if(is_nonzero_row_1[item.get_group(0) * num_secs + item.get_group(1)]) {
-      for(size_t j = tid; j < sec_size; j += num_threads) {
+    if (is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)]) {
+      for (size_t j = tid; j < sec_size; j += num_threads) {
         ////Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + j] = 0;
-        Y_1[item.get_group(0) * num_neurons + item.get_group(1) * sec_size + j] = 0;
+        Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + j] = 0;
       }
+      item.barrier(sycl::access::fence_space::local_space);
       ////__syncthreads();
-      if(tid == 0) {
-        is_nonzero_row_1[item.get_group(0) * num_secs + item.get_group(1)] = false;
+      
+      if (tid == 0) {
+        is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = false;
       } 
     }
     return;
@@ -78,42 +86,54 @@ void snig_inference(
 
   //forward feeding
   ////extern __shared__ T results[];
-  T* results = malloc_device<T>(N, q);
 
   //set results to bias directly
-  for(size_t k = tid; k < sec_size; k += num_threads) {
-    results[k] = bias;  
+  for (size_t k = tid; k < sec_size; k += num_threads) {
+    p_b_results[k] = bias;  
   }
 
   //use bool array size of 2 (is_nonzero) in share memory to avoid synchronization
   //is_nonzero[1] represents whether this row is nonzero
   //if is_nonzero[1] is true, this row is nonzero
   ////__shared__ bool is_nonzero[2];
-  bool* is_nonzero = malloc_device<bool>(2, q);
 
-  if(tid == 0) {
-    is_nonzero[1] = false;
+  if (tid == 0) {
+    p_b_is_nonzero[1] = false;
   }
   ////__syncthreads();
-
-  for(size_t s_i = 0; s_i < num_secs; ++s_i) {
-    if(!is_nonzero_row_0[item.get_group(0) * num_secs + s_i]) {
+  item.barrier(sycl::access::fence_space::local_space);
+  
+  for (size_t s_i = 0; s_i < num_secs; ++s_i) {
+    if (!is_nonzero_row_0[item.get_group(1) * num_secs + s_i]) {
       continue;
     }
     ////if(!is_nonzero_row_0[blockIdx.x * num_secs + s_i]) {
     ////  continue;
     ////}
-    for(size_t j = item.get_global_id(1) + s_i * sec_size; j < (s_i + 1) * sec_size; j += 16) {
-      T valY = Y_0[item.get_group(0) * num_neurons + j];
-      if(valY == 0) {
+    for (size_t j = item.get_local_id(0) + s_i * sec_size; 
+         j < (s_i + 1) * sec_size; 
+         j += 16) {
+
+      T valY = Y_0[item.get_group(1) * num_neurons + j];
+      if (valY == 0) {
         continue;
       }
-      int beg_w = col_w[item.get_group(1) * num_neurons + j] + item.get_global_id(0);
-      int end_w = col_w[item.get_group(1) * num_neurons + j + 1];
-      for(int k = beg_w; k < end_w; k += 16) {
+      
+      int beg_w = col_w[item.get_group(0) * num_neurons + j] + item.get_local_id(1);
+      int end_w = col_w[item.get_group(0) * num_neurons + j + 1];
+      
+      for (int k = beg_w; k < end_w; k += 16) {
         int roww = row_w[k];
         T valw = val_w[k];
-        atomicAdd(&results[roww - item.get_group(1) * sec_size], valY * valw);
+        auto ref = sycl::ONEAPI::atomic_ref<
+          int,
+          sycl::ONEAPI::memory_order_relaxed,
+          sycl::ONEAPI::memory_scope::device,
+          sycl::access::address_space::global_space
+        >{p_b_results[roww - item.get_group(0) * sec_size]};
+
+        ref.fetch_add(valY * valw);
+        atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
       }
     }
     ////for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {
@@ -131,19 +151,22 @@ void snig_inference(
     ////}
   }
   ////__syncthreads();
-  for(size_t i = tid; i < sec_size; i += num_threads) {
-    T v = min(T(32), max(results[i], T(0)));
-    Y_1[item.get_group(0) * num_neurons + item.get_group(1) * sec_size + i] = v;
+  item.barrier(sycl::access::fence_space::local_space);
+
+  for (size_t i = tid; i < sec_size; i += num_threads) {
+    T v = min(T(32), max(p_b_results[i], T(0)));
+    Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
     ////Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + i] = v;
-    is_nonzero[v != 0] = true;
+    p_b_is_nonzero[v != 0] = true;
   }
 
   //if one thread sets is_nonzero[1] to true
   //meaning this row is nonzero
   //toggle is_nonzero_row_1[this row] to true
   ////__syncthreads();
-  if(tid == 0) {
-    is_nonzero_row_1[item.get_group(0) * num_secs + item.get_group(1)] = is_nonzero[1];
+  item.barrier(sycl::access::fence_space::local_space);
+  if (tid == 0) {
+    is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
     ////is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = is_nonzero[1];
   }
 }

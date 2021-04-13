@@ -33,10 +33,19 @@ class Base {
     size_t _pp_wsize;
 
     //kernel configuration
-    dim3 _threads{32, 32, 1};
+    //dim3 _threads{32, 32, 1};
 
+    /*
     Base(
       const dim3& threads,
+      const std::fs::path& weight_path,
+      const T bias,
+      const size_t num_neurons,
+      const size_t num_layers
+    );
+    */
+
+    Base(
       const std::fs::path& weight_path,
       const T bias,
       const size_t num_neurons,
@@ -93,7 +102,7 @@ class Base {
 // ----------------------------------------------------------------------------
 // Definition of Base
 // ----------------------------------------------------------------------------
-
+/*
 template <typename T>
 Base<T>::Base(
   const dim3& threads,
@@ -105,12 +114,32 @@ Base<T>::Base(
   _bias{bias},
   _num_neurons{num_neurons},
   _num_layers{num_layers},
-  _threads{threads}
+  //_threads{threads}
 {
   _sec_size = get_sec_size<T>(Base<T>::_num_neurons);
   _num_secs = (Base<T>::_num_neurons) / _sec_size;
   _load_weight(weight_path);
 }
+*/
+
+
+template <typename T>
+Base<T>::Base(
+  const std::fs::path& weight_path,
+  const T bias,
+  const size_t num_neurons,
+  const size_t num_layers
+) : 
+  _bias{bias},
+  _num_neurons{num_neurons},
+  _num_layers{num_layers}
+{
+  _sec_size = get_sec_size<T>(Base<T>::_num_neurons);
+  _num_secs = (Base<T>::_num_neurons) / _sec_size;
+  _load_weight(weight_path);
+}
+
+
 
 template <typename T>
 Base<T>::~Base() {

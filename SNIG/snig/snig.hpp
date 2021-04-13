@@ -17,6 +17,8 @@ namespace std {
 
 namespace snig{
 
+class mxm_kernel;
+
 template <typename T>
 class SNIG : public Base<T> {
 
@@ -67,7 +69,7 @@ class SNIG : public Base<T> {
     sycl::queue queue;
 
     SNIG(
-      const dim3& threads,
+      //const dim3& threads,
       const std::fs::path& weight_path,
       const T bias = -.3f,
       const size_t num_neurons_per_layer = 1024,
@@ -87,7 +89,7 @@ class SNIG : public Base<T> {
 // ----------------------------------------------------------------------------
 // Definition of SNIG
 // ----------------------------------------------------------------------------
-
+/*
 template <typename T>
 SNIG<T>::SNIG(
   const dim3& threads,
@@ -98,7 +100,16 @@ SNIG<T>::SNIG(
   Base<T>(threads, weight_path, bias, num_neurons_per_layer, num_layers) {
     Base<T>::log("Constructing SNIG engine......", "\n");
   }
-
+*/
+template <typename T>
+SNIG<T>::SNIG(
+  const std::fs::path& weight_path,
+  const T bias,
+  const size_t num_neurons_per_layer,
+  const size_t num_layers) :
+  Base<T>(weight_path, bias, num_neurons_per_layer, num_layers) {
+    Base<T>::log("Constructing SNIG engine......", "\n");
+  }
 
 
 template <typename T>
@@ -272,22 +283,22 @@ void SNIG<T>::_infer() {
           T* M_result;
           bool* M_isnonzero;
 
-          buffer<T> b_result(M_result, Base<T>::_sec_size);
-          buffer<bool> b_isnonzero(M_isnonzero, 2);
+          sycl::buffer<T> b_result(M_result, Base<T>::_sec_size);
+          sycl::buffer<bool> b_isnonzero(M_isnonzero, 2);
 
           infers.emplace_back(sf.on(
-            [&](handler& cgh) {
-              auto p_result = b_result.template get_access<access::mode::read>(cgh);
-              auto p_isnonzero = b_isnonzero.template get_access<access::mode::read>(cgh);
-              auto localRange = range<1>(blockSize * blockSize);
+            [&](sycl::handler& cgh) {
+              auto p_result = b_result.template get_access<sycl::access::mode::read>(cgh);
+              auto p_isnonzero = b_isnonzero.template get_access<sycl::access::mode::read>(cgh);
+              auto localRange = sycl::range<1>(16*16);
               
-              accessor<T, 1, 
-                access::mode::read_write, 
-                access::target::local> p_b_result(localRange, cgh);
+              sycl::accessor<T, 1, 
+                sycl::access::mode::read_write, 
+                sycl::access::target::local> p_b_result(localRange, cgh);
 
-              accessor<T, 1, 
-                access::mode::read_write, 
-                access::target::local> p_b_isnonzero(localRange, cgh);
+              sycl::accessor<T, 1, 
+                sycl::access::mode::read_write, 
+                sycl::access::target::local> p_b_isnonzero(localRange, cgh);
 
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_batch, resized_secs), 

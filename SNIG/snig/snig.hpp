@@ -319,13 +319,13 @@ void SNIG<T>::_infer() {
                     item,
                     p_b_result,
                     p_b_isnonzero
-                  )
+                  );
                 }
-              )
+              );
             }).name("Inference")
           );
         }
-      }
+      }, queue)
 
       ////???
       // TODO: consider parameterizing the thread numbers
@@ -396,7 +396,7 @@ void SNIG<T>::_weight_alloc() {
 
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     for (auto& each_W : W) {
-      &each_W = sycl::malloc_device(
+      each_W = (int*)sycl::malloc_device(
         Base<T>::_pp_wsize, 
         queue
       );
@@ -418,7 +418,7 @@ void SNIG<T>::_input_alloc() {
     queue
   );
   
-  &_source_is_nonzero_row = sycl::malloc_shared<bool>(
+  _source_is_nonzero_row = sycl::malloc_shared<bool>(
     sizeof(bool) * Base<T>::_num_inputs * Base<T>::_num_secs, 
     queue
   );
@@ -434,12 +434,12 @@ void SNIG<T>::_input_alloc() {
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     
-    &Y[1] = sycl::malloc_device<T>(
+    Y[1] = sycl::malloc_device<T>(
       _batch_ysize, 
       queue
     );
 
-    &is_nonzero_row[1] = sycl::malloc_device(
+    is_nonzero_row[1] = (bool*)sycl::malloc_device(
       sizeof(bool) * _batch_size * Base<T>::_num_secs, 
       queue
     );
@@ -460,7 +460,7 @@ void SNIG<T>::_input_alloc() {
 
 template <typename T>
 void SNIG<T>::_result_alloc() {
-  &_results = sycl::malloc_shared<int>(
+  _results = sycl::malloc_shared<int>(
     sizeof(int) * Base<T>::_num_inputs, 
     queue
   );

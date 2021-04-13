@@ -7,7 +7,7 @@ void snig_inference(
   const T* Y_0,
   const bool* is_nonzero_row_0,
   const size_t sec_size,
-  const size_t num_sec,
+  const size_t num_secs,
   const size_t num_neurons,
   const int* col_w,
   const int* row_w,

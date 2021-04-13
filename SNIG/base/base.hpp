@@ -143,7 +143,8 @@ Base<T>::Base(
 
 template <typename T>
 Base<T>::~Base() {
-  checkCuda(cudaFreeHost(_host_pinned_weight));
+  cudaFreeHost(_host_pinned_weight);
+  //checkCuda(cudaFreeHost(_host_pinned_weight));
 }
 
 template <typename T>
@@ -177,10 +178,17 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
   //pad packed weight size
   _pp_wsize = sizeof(int) * (_pp_w_index_len) + sizeof(T) * _max_nnz;
   
+  /*
   checkCuda(cudaMallocHost(
     (void**)&_host_pinned_weight,
     _pp_wsize * _num_layers
   ));
+  */
+
+  cudaMallocHost(
+    (void**)&_host_pinned_weight,
+    _pp_wsize * _num_layers
+  );
 
   std::memset(
     _host_pinned_weight,

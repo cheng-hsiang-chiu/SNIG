@@ -5,7 +5,7 @@
 #include <taskflow/syclflow.hpp>
 #include <SNIG/utility/reader.hpp>
 #include <SNIG/utility/matrix_format.h>
-#include <SNIG/utility/cuda_error.hpp>
+//#include <SNIG/utility/cuda_error.hpp>
 #include <SNIG/snig/kernel.hpp>
 #include <SNIG/utility/scoring.hpp>
 #include <SNIG/base/base.hpp>
@@ -67,14 +67,22 @@ class SNIG : public Base<T> {
   public:
 
     sycl::queue queue;
-
+  
+    /*
     SNIG(
-      //const dim3& threads,
+      const dim3& threads,
       const std::fs::path& weight_path,
       const T bias = -.3f,
       const size_t num_neurons_per_layer = 1024,
       const size_t num_layers = 120);
-
+    */
+ 
+    SNIG(
+      const std::fs::path& weight_path,
+      const T bias = -.3f,
+      const size_t num_neurons_per_layer = 1024,
+      const size_t num_layers = 120);
+    
     ~SNIG();
 
     Eigen::Matrix<int, Eigen::Dynamic, 1> infer(
@@ -325,7 +333,7 @@ void SNIG<T>::_infer() {
             }).name("Inference")
           );
         }
-      }, queue)
+      }
 
       ////???
       // TODO: consider parameterizing the thread numbers
@@ -345,8 +353,9 @@ void SNIG<T>::_infer() {
         }
       }
 
-      infers[Base<T>::_num_layers - 1].precede(ident);
-    }).name("GPU"));
+      ////???
+      //infers[Base<T>::_num_layers - 1].precede(ident);
+    }, queue).name("GPU"));
 
 
     fetchs.emplace_back(taskflow.emplace([&, dev](){

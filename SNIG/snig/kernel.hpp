@@ -126,7 +126,7 @@ void snig_inference(
         int roww = row_w[k];
         T valw = val_w[k];
         auto ref = sycl::ONEAPI::atomic_ref<
-          int,
+          T,
           sycl::ONEAPI::memory_order_relaxed,
           sycl::ONEAPI::memory_scope::device,
           sycl::access::address_space::global_space

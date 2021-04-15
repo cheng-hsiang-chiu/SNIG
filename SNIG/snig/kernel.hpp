@@ -16,8 +16,8 @@ void snig_inference(
   bool* is_nonzero_row_1,
   T* Y_1,
   sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero
 );
 
 //-----------------------------------------------------------------------------
@@ -38,8 +38,8 @@ void snig_inference(
   bool* is_nonzero_row_1,
   T* Y_1,
   sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero) {
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero) {
 
   //int row = item.get_global_id(0);
   //int col = item.get_global_id(1);
@@ -133,7 +133,7 @@ void snig_inference(
         >{p_b_results[roww - item.get_group(0) * sec_size]};
 
         ref.fetch_add(valY * valw);
-        atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
+        //atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
       }
     }
     ////for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {

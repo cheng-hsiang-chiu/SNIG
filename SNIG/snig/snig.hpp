@@ -295,7 +295,7 @@ void SNIG<T>::_infer() {
           sycl::buffer<bool> b_isnonzero(M_isnonzero, 2);
 
           infers.emplace_back(sf.on(
-            [&, k](sycl::handler& cgh) {   //////next iteration k is gone
+            [=, &b_result, &b_isnonzero](sycl::handler& cgh) { 
               auto p_result = b_result.template get_access<sycl::access::mode::read>(cgh);
               auto p_isnonzero = b_isnonzero.template get_access<sycl::access::mode::read>(cgh);
               auto localRange = sycl::range<1>(16*16);
@@ -308,27 +308,31 @@ void SNIG<T>::_infer() {
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_isnonzero(localRange, cgh);
               
-              auto __dev_Y = _dev_Y[dev][k % 2 ];
-              auto __dev_is_nonzero_row = _dev_is_nonzero_row[dev][k % 2];
-              auto __dev_Y_1 = _dev_Y[dev][(k + 1) % 2];
-              auto __dev_is_nonzero_row_1 = _dev_is_nonzero_row[dev][(k + 1) % 2];
+              auto si_dev_Y = _dev_Y[dev][k % 2];
+              auto si_dev_is_nonzero_row = _dev_is_nonzero_row[dev][k % 2];
+              auto si_dev_Y_1 = _dev_Y[dev][(k + 1) % 2];
+              auto si_dev_is_nonzero_row_1 = _dev_is_nonzero_row[dev][(k + 1) % 2];
+              auto si_sec_size = Base<T>::_sec_size;
+              auto si_num_secs = Base<T>::_num_secs;
+              auto si_num_neurons = Base<T>::_num_neurons;
+              auto si_bias = Base<T>::_bias;
               
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_batch, resized_secs), 
                 sycl::range<2>(16, 16)},
                 [=](sycl::nd_item<2> item) mutable {
                   snig_inference<T>(
-                    __dev_Y,
-                    __dev_is_nonzero_row,
-                    Base<T>::_sec_size,
-                    Base<T>::_num_secs,
-                    Base<T>::_num_neurons,
+                    si_dev_Y,
+                    si_dev_is_nonzero_row,
+                    si_sec_size,
+                    si_num_secs,
+                    si_num_neurons,
                     col_w,
                     row_w,
                     val_w,
-                    Base<T>::_bias,
-                    __dev_is_nonzero_row_1,
-                    __dev_Y_1,
+                    si_bias,
+                    si_dev_is_nonzero_row_1,
+                    si_dev_Y_1,
                     item,
                     p_b_result,
                     p_b_isnonzero

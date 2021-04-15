@@ -7,7 +7,7 @@
 #include <SNIG/utility/matrix_format.h>
 //#include <SNIG/utility/cuda_error.hpp>
 #include <SNIG/snig/kernel.hpp>
-#include <SNIG/utility/scoring.hpp>
+//#include <SNIG/utility/scoring.hpp>
 #include <SNIG/base/base.hpp>
 #include <vector>
 

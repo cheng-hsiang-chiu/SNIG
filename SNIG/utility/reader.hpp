@@ -28,13 +28,13 @@ std::enable_if_t<std::is_same<T, double>::value, double>
 to_numeric(const std::string& str) {
   return std::stod(str);
 }
-
+/*
 template <typename T>
 std::enable_if_t<std::is_same<T, half>::value, half> 
 to_numeric(const std::string& str) {
   return __float2half(std::stof(str));
 }
-
+*/
 template <typename T>
 Eigen::SparseMatrix<T> tsv_string_to_matrix(
   const std::string& s,

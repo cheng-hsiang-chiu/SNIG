@@ -323,7 +323,7 @@ include_directories(/usr/local/cuda-11.1/lib64)
 find_package(CUDA QUIET REQUIRED)
 
 # Find pthread package
-find_package(Threads REQUIRED)
+# find_package(Threads REQUIRED)
 
 # OpenMP
 # find_package(OpenMP REQUIRED)

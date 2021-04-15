@@ -154,7 +154,7 @@ void snig_inference(
   item.barrier(sycl::access::fence_space::local_space);
 
   for (size_t i = tid; i < sec_size; i += num_threads) {
-    T v = min(T(32), max(p_b_results[i], T(0)));
+    T v = std::min(T(32), std::max(p_b_results[i], T(0)));
     Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
     ////Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + i] = v;
     p_b_is_nonzero[v != 0] = true;

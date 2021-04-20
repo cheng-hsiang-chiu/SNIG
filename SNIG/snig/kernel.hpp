@@ -2,6 +2,7 @@
 
 namespace snig{
 
+/*
 template <typename T>
 void snig_inference(
   const T* Y_0,
@@ -19,7 +20,24 @@ void snig_inference(
   sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
   sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero
 );
-
+*/
+template <typename T>
+void snig_inference(
+  const T* Y_0,
+  const bool* is_nonzero_row_0,
+  const size_t sec_size,
+  const size_t num_secs,
+  const size_t num_neurons,
+  const int* col_w,
+  const int* row_w,
+  const T* val_w,
+  const T bias,
+  bool* is_nonzero_row_1,
+  T* Y_1,
+  sycl::nd_item<2> item,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero
+);
 //-----------------------------------------------------------------------------
 //Definition of kernel function
 //-----------------------------------------------------------------------------

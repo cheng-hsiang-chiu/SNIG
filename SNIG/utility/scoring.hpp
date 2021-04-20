@@ -3,17 +3,23 @@
 #include <Eigen/SparseCore>
 #include <Eigen/Dense>
 #include <SNIG/utility/matrix_format.h>
+#include <taskflow/syclflow.hpp>
+#include <SNIG/base/base.hpp>
+
 
 namespace snig {
 
+/*
 template<typename T>
-__global__
 void identify(
   T* target_arr,
   const size_t batch_size,
   const size_t num_neurons_per_layer,
-  int* result_arr
+  int* result_arr,
+  sycl::nd_item<1> item,
+  tf::syclFlow& sf
 );
+*/
 
 template<typename T>
 Eigen::Matrix<int, Eigen::Dynamic, 1> get_score(
@@ -45,27 +51,36 @@ bool is_passed(
 //Definition of scoring function
 //-----------------------------------------------------------------------------
 
+
+/*
 template<typename T>
-__global__
 void identify(
   T* target_arr,
   const size_t batch_size,
   const size_t num_neurons_per_layer,
-  int* result_arr
+  int* result_arr,
+  sycl::nd_item<1> item,
+  tf::syclFlow& sf
 ) {
-  int tid = blockIdx.x * blockDim.x + threadIdx.x;
-  for(int i = tid; i < batch_size; i += gridDim.x * blockDim.x) {
-    T sum = thrust::reduce(
-      thrust::device,
+
+  //sycl::queue queue;
+  //tf::syclFlow syclflow(queue);
+
+  int tid = item.get_global_linear_id();
+  //int tid = blockIdx.x * blockDim.x + threadIdx.x;
+  for(int i = tid; i < batch_size; i += 16 * 512) {
+    T sum;
+
+    sf.reduce(
       target_arr + i * num_neurons_per_layer,
       target_arr + (i + 1) * num_neurons_per_layer,
-      0,
-      thrust::plus<T>()
+      &sum,
+      [](T a, T b){ return a+b; }
     );
     result_arr[i] = sum > 0 ? 1 : 0;
   }
 };
-
+*/
 
 template<typename T>
 Eigen::Matrix<int, Eigen::Dynamic, 1> get_score(

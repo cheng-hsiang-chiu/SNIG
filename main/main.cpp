@@ -1,8 +1,9 @@
 #include <CLI11/CLI11.hpp>
 #include <SNIG/SNIG.hpp>
 #include <SNIG/utility/reader.hpp>
-#include <SNIG/utility/scoring.hpp>
+//#include <SNIG/utility/scoring.hpp>
 #include <iostream>
+
 
 int main(int argc, char* argv[]) {
 
@@ -121,6 +122,8 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Current mode: " << mode << std::endl;
 
+
+  
   if(mode == "SNIG") {
     /*
     snig::SNIG<float> snig(
@@ -137,7 +140,7 @@ int main(int argc, char* argv[]) {
       num_neurons, 
       num_layers
     );
-    result = snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
+    //result = snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
   }
   /*
   else if(mode == "GPipe") {
@@ -167,6 +170,7 @@ int main(int argc, char* argv[]) {
     throw std::runtime_error("Error mode. Please correct your mode name"s);
   }
 
+  /*
   auto golden = snig::read_golden_binary(golden_path);
   if(snig::is_passed(result, golden)) {
     std::cout << "CHALLENGE PASSED\n";
@@ -174,5 +178,6 @@ int main(int argc, char* argv[]) {
   else{
     std::cout << "CHALLENGE FAILED\n";
   }
+  */
   return 0;
 }

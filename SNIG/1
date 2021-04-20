@@ -111,7 +111,6 @@ SNIG<T>::SNIG(
     Base<T>::log("Constructing SNIG engine......", "\n");
   }
 */
-
 template <typename T>
 SNIG<T>::SNIG(
   const std::fs::path& weight_path,
@@ -362,12 +361,14 @@ void SNIG<T>::_infer() {
         [=](sycl::nd_item<1> item) {
 
           int tid = item.get_global_linear_id();
-          //auto reduction = [](T a, T b){ return a + b; };
           for (int i = tid; i < bsize; i += 16 * 512) {
             T sum;
-            for (auto index = i * nns; index < (i+1) * nns; ++index) {
-              sum += *(dY + index);
-            }
+            sf.reduce(
+              dY + i * nns,
+              dY + (i + 1) * nns,
+              dr,
+              [](T a, T b){ return a + b; }
+            );
             dr[i] = sum > 0 ? 1 : 0;
           }
           //identify<T>(dY, bsize, nns, dr, item);                                 
@@ -387,8 +388,9 @@ void SNIG<T>::_infer() {
           infers[cur_layer].precede(infers[cur_layer + 1]);
         }
       }
+
       
-      infers[Base<T>::_num_layers - 1].precede(ident);
+      //infers[Base<T>::_num_layers - 1].precede(ident);
     }, Base<T>::_queue).name("GPU"));
 
 

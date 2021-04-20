@@ -26,18 +26,20 @@ void num_nonzero_row(std::vector<size_t>& nerows);
 //-----------------------------------------------------------------------------
 
 template<typename T>
-size_t get_sec_size(const size_t num_neurons) {
+size_t get_sec_size(const size_t num_neurons, 
+                    const size_t sharedMemPerBlock) {
 
   //only for the same GPUs
   //
   //get tuned shared memory size
   //num_neurons must be divisible by shared memory (a.k.a. sec_size)
   //only for double float
-  cudaDeviceProp props;
-  cudaGetDeviceProperties(&props, 0);
+  /////cudaDeviceProp props;
+  //////cudaGetDeviceProperties(&props, 0);
+
   size_t sec_size{0};
 
-  size_t max_num_per_block = props.sharedMemPerBlock / sizeof(T);
+  size_t max_num_per_block = sharedMemPerBlock / sizeof(T);
   if(num_neurons <= max_num_per_block) {
     sec_size = num_neurons;
   }

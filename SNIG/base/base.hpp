@@ -2,11 +2,15 @@
 
 #include <SNIG/utility/utility.hpp>
 #include <chrono>
+#include <taskflow/syclflow.hpp>
 
 namespace snig {
 
 template <typename T>
 class Base {
+
+  public:
+    sycl::queue _queue;
 
   protected:
 
@@ -32,6 +36,7 @@ class Base {
     size_t _pp_wlen;
     size_t _pp_wsize;
 
+    //sycl::queue queue;
     //kernel configuration
     //dim3 _threads{32, 32, 1};
 
@@ -74,7 +79,7 @@ class Base {
     bool _enable_counter{false};
     bool _enable_toc{false};
 
-    void _load_weight(const std::fs::path& weight_path); 
+    void _load_weight(const std::fs::path& weight_path, sycl::queue queue); 
 
     template <typename L>
     void _cout(L&& last) const;
@@ -134,21 +139,32 @@ Base<T>::Base(
   _num_neurons{num_neurons},
   _num_layers{num_layers}
 {
-  _sec_size = get_sec_size<T>(Base<T>::_num_neurons);
+ 
+  sycl::platform platform = sycl::platform::get_platforms()[0];
+  sycl::device device = platform.get_devices()[0];
+  _queue = sycl::queue(device);
+ 
+  size_t shared_mem_size = device.get_info<sycl::info::device::local_mem_size>();
+  _queue.submit([](sycl::handler& handler) {
+    handler.single_task([](){
+    });  
+  }); 
+  
+  _sec_size = get_sec_size<T>(Base<T>::_num_neurons, shared_mem_size);
   _num_secs = (Base<T>::_num_neurons) / _sec_size;
-  _load_weight(weight_path);
+  _load_weight(weight_path, _queue);
 }
 
 
 
 template <typename T>
 Base<T>::~Base() {
-  cudaFreeHost(_host_pinned_weight);
+  //cudaFreeHost(_host_pinned_weight);
   //checkCuda(cudaFreeHost(_host_pinned_weight));
 }
 
 template <typename T>
-void Base<T>::_load_weight(const std::fs::path& weight_path) {
+void Base<T>::_load_weight(const std::fs::path& weight_path, sycl::queue queue) {
   log("Loading the weight......");
 
   tic();
@@ -185,9 +201,9 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
   ));
   */
 
-  cudaMallocHost(
-    (void**)&_host_pinned_weight,
-    _pp_wsize * _num_layers
+  _host_pinned_weight = (int*)sycl::malloc_host(
+    _pp_wsize * _num_layers,
+    queue
   );
 
   std::memset(

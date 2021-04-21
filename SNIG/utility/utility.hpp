@@ -5,7 +5,9 @@
 namespace snig {
 
 template<typename T>
-size_t get_sec_size(const size_t num_neurons);
+size_t get_sec_size(
+  const size_t num_neurons,
+  const size_t sharedMemPerBlock);
 
 inline
 float average_zero_percent_in_non_empty_rows(

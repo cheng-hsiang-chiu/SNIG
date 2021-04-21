@@ -1,5 +1,5 @@
 #pragma once
-#include <thrust/scan.h>
+//#include <thrust/scan.h>
 #include <Eigen/SparseCore>
 #include <Eigen/Dense>
 #include <SNIG/utility/matrix_format.h>

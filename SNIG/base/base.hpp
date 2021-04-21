@@ -143,13 +143,14 @@ Base<T>::Base(
   sycl::platform platform = sycl::platform::get_platforms()[0];
   sycl::device device = platform.get_devices()[0];
   _queue = sycl::queue(device);
- 
+  /* 
   size_t shared_mem_size = device.get_info<sycl::info::device::local_mem_size>();
   _queue.submit([](sycl::handler& handler) {
     handler.single_task([](){
     });  
   }); 
-  
+  */
+  size_t shared_mem_size = 256;  
   _sec_size = get_sec_size<T>(Base<T>::_num_neurons, shared_mem_size);
   _num_secs = (Base<T>::_num_neurons) / _sec_size;
   _load_weight(weight_path, _queue);

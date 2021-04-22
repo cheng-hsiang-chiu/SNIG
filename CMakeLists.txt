@@ -208,17 +208,30 @@ target_compile_options(
 # endif(TF_BUILD_CUDA)
 
 
+
+#############
 # sycl compiler options (currently support only DPC++)
-if(SNIG_BUILD_SYCL)
-  message(STATUS "Configuring SYCL compiler options ...")
+#if(SNIG_BUILD_SYCL)
+#  message(STATUS "Configuring SYCL compiler options ...")
 #  message(STATUS "You may specify -DTF_BUILD_SYCL_BITCODE=ptx64"
-  set (CMAKE_CXX_COMPILER "/home/chchiu/sycl_workspace/llvm/build/bin/clang++")
+#  set (CMAKE_CXX_COMPILER "/home/chchiu/sycl_workspace/llvm/build/bin/clang++")
 #  if(SNIG_BUILD_SYCL_BITCODE STREQUAL "ptx64")
 #    message(STATUS "Configuring SYCL compiler options to CUDA ptx64 ...")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FALGS} -fsycl -fsycl-unnamed-lambda")
-  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=nvptx64-nvidia-cuda-sycldevice") 
+#  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FALGS} -fsycl -fsycl-unnamed-lambda")
+#  set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl-targets=nvptx64-nvidia-cuda-sycldevice") 
 #  endif()
+#endif()
+#############
+if(SNIG_BUILD_SYCL)
+  message(STATUS "Configuring SYCL compiler options ...")
+  message(STATUS "You may specify -DTF_BUILD_SYCL_BITCODE=ptx64")
+  list(APPEND TF_SYCL_OPTIONS -fsycl -fsycl-unnamed-lambda)
+  if(TF_BUILD_SYCL_BITCODE STREQUAL "ptx64")
+    message(STATUS "Configuring SYCL compiler options to CUDA ptx64 ...")
+    list(APPEND TF_SYCL_OPTIONS -fsycl-targets=nvptx64-nvidia-cuda-sycldevice)
+  endif()
 endif()
+
 
 # additional features
 #add_library(features_settings INTERFACE)
@@ -303,14 +316,13 @@ message(STATUS "SNIG_INC_INSTALL_DIR: " ${SNIG_INC_INSTALL_DIR})
 message(STATUS "SNIG_3RD_PARTY_DIR: " ${SNIG_3RD_PARTY_DIR})
 
 # add the binary tree to the search path for include files
-include_directories(${PROJECT_SOURCE_DIR}/3rd-party/OpenCL-Headers)
-include_directories(${PROJECT_SOURCE_DIR})
+include_directories(/home/chiu/sycl_workspace/llvm/sycl/include)
+#include_directories($ENV{DPCPP_HOME}/taskflow/)
+include_directories(/home/chiu/sycl_workspace/taskflow/)
 include_directories(${PROJECT_SOURCE_DIR}/3rd-party/)
-#include_directories(${PROJECT_SOURCE_DIR}/3rd-party/thrust/)
-include_directories($ENV{DPCPP_HOME}/taskflow/)
-# include_directories(/usr/local/cuda-11.1/bin)
-include_directories(/usr/local/cuda-11.1/include)
-include_directories(/usr/local/cuda-11.1/lib64)
+include_directories(${PROJECT_SOURCE_DIR})
+#include_directories(/usr/local/cuda-11.1/include)
+#include_directories(/usr/local/cuda-11.1/lib64)
 
 
 # -----------------------------------------------------------------------------
@@ -320,10 +332,10 @@ include_directories(/usr/local/cuda-11.1/lib64)
 # Enable test
 ## include(CTest)
 
-find_package(CUDA QUIET REQUIRED)
+#find_package(CUDA QUIET REQUIRED)
 
 # Find pthread package
-# find_package(Threads REQUIRED)
+find_package(Threads REQUIRED)
 
 # OpenMP
 # find_package(OpenMP REQUIRED)

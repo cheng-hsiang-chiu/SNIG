@@ -316,11 +316,12 @@ message(STATUS "SNIG_INC_INSTALL_DIR: " ${SNIG_INC_INSTALL_DIR})
 message(STATUS "SNIG_3RD_PARTY_DIR: " ${SNIG_3RD_PARTY_DIR})
 
 # add the binary tree to the search path for include files
-include_directories(/home/chiu/sycl_workspace/llvm/sycl/include)
+#include_directories(/home/chiu/sycl_workspace/llvm/sycl/include)
 #include_directories($ENV{DPCPP_HOME}/taskflow/)
-include_directories(/home/chiu/sycl_workspace/taskflow/)
+#include_directories(/home/chiu/sycl_workspace/taskflow/)
 include_directories(${PROJECT_SOURCE_DIR}/3rd-party/)
 include_directories(${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/3rd-party/)
 #include_directories(/usr/local/cuda-11.1/include)
 #include_directories(/usr/local/cuda-11.1/lib64)
 
@@ -437,4 +438,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 add_executable(snig ${PROJECT_SOURCE_DIR}/main/main.cpp)
 target_link_libraries(snig ${PROJECT_NAME} stdc++fs)
+
+target_compile_options(snig PRIVATE ${TF_SYCL_OPTIONS})
+target_link_options(snig PRIVATE ${TF_SYCL_OPTIONS})
 

@@ -78,9 +78,9 @@ class SNIG : public Base<T> {
       const size_t num_neurons_per_layer = 1024,
       const size_t num_layers = 120);
     */
- 
+     
     SNIG(
-      const std::fs::path& weight_path,
+      const std::string& weight_path, //const std::fs::path& weight_path,
       const T bias = -.3f,
       const size_t num_neurons_per_layer = 1024,
       const size_t num_layers = 120);
@@ -112,20 +112,23 @@ SNIG<T>::SNIG(
   }
 */
 
+
 template <typename T>
 SNIG<T>::SNIG(
-  const std::fs::path& weight_path,
+  const std::string& weight_path,  //const std::fs::path& weight_path,
   const T bias,
   const size_t num_neurons_per_layer,
   const size_t num_layers) :
   Base<T>(weight_path, bias, num_neurons_per_layer, num_layers) {
     Base<T>::log("Constructing SNIG engine......", "\n");
+    std::cout << "SNIG constructor\n";
   }
+
 
 
 template <typename T>
 SNIG<T>::~SNIG() {
-
+ /* 
   sycl::free(_source_Y, Base<T>::_queue);
   sycl::free(_source_is_nonzero_row, Base<T>::_queue);
 
@@ -144,6 +147,7 @@ SNIG<T>::~SNIG() {
   }
 
   sycl::free(_results, Base<T>::_queue);
+  */
 }
 
 
@@ -155,12 +159,12 @@ Eigen::Matrix<int, Eigen::Dynamic, 1> SNIG<T>::infer(
   const size_t batch_size,
   const size_t num_weight_buffers,
   const size_t num_gpus) {
-  
+    
   Base<T>::log("Using ", num_gpus, " GPUs", "\n");
   Base<T>::log("Total input size : ", num_inputs, "\n");
   Base<T>::log("Input batch size : ", batch_size, "\n");
   Base<T>::log("Number of weight buffers : ", num_weight_buffers, "\n\n");
-
+  /*
   _set_parameters(
     num_inputs,
     batch_size,
@@ -172,10 +176,11 @@ Eigen::Matrix<int, Eigen::Dynamic, 1> SNIG<T>::infer(
   _infer();
 
   return arr_to_Eigen_int(_results, Base<T>::_num_inputs);
+  */
 }
 
 
-
+/*
 template <typename T>
 void SNIG<T>::_set_parameters(
   const size_t num_inputs,
@@ -216,9 +221,9 @@ void SNIG<T>::_preprocess(const std::fs::path& input_path) {
   Base<T>::toc();
   Base<T>::log("Finish preprocessing with ", Base<T>::duration(), " ms", "\n");
 }
+*/
 
-
-
+/*
 template <typename T>
 void SNIG<T>::_infer() {
   Base<T>::log("Start inference...... ", "\n");
@@ -514,7 +519,7 @@ void SNIG<T>::_result_alloc() {
     sizeof(int) * Base<T>::_num_inputs
   );
 }
-
+*/
 
 
 

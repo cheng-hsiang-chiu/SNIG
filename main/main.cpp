@@ -1,8 +1,10 @@
 #include <CLI11/CLI11.hpp>
 #include <SNIG/SNIG.hpp>
 #include <SNIG/utility/reader.hpp>
-//#include <SNIG/utility/scoring.hpp>
+#include <SNIG/utility/scoring.hpp>
 #include <iostream>
+#include <string>
+#include <taskflow/syclflow.hpp>
 
 
 int main(int argc, char* argv[]) {
@@ -101,6 +103,7 @@ int main(int argc, char* argv[]) {
     "number of input bath size, default is 5000, must be a factor of num_input (60000)"
   );
 
+  
   //for kernel dimesion
   //default is (2, 512, 1)
   std::vector<size_t> thread_vector(3);
@@ -113,6 +116,7 @@ int main(int argc, char* argv[]) {
     thread_vector,
     "thread dimension for inference kernel, need 3 parameters, default is 2 512 1, constrained by the maximum number of threads (typically 1024)"
   )->expected(3);
+  
 
   CLI11_PARSE(app, argc, argv);
 
@@ -122,9 +126,9 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Current mode: " << mode << std::endl;
 
+    
 
-  
-  if(mode == "SNIG") {
+  if (mode == "SNIG") {
     /* 
     snig::SNIG<float> snig(
       thread_dimension,
@@ -134,16 +138,25 @@ int main(int argc, char* argv[]) {
       num_layers
     );
     */
-    
+        
     snig::SNIG<float> snig(
-      weight_path, 
+      weight_path,
       bias,
       num_neurons, 
       num_layers
     );
     
-    result = snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
+    //result = 
+    snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
   }
+  /*
+  else {
+    using namespace std::literals::string_literals;
+    throw std::runtime_error("Error mode. Please correct your mode name"s);
+  }
+  */
+
+
   /*
   else if(mode == "GPipe") {
     snig::GPipe<float> gpipe(
@@ -167,10 +180,6 @@ int main(int argc, char* argv[]) {
     result = bf.infer(input_path, 60000, num_gpus);
   }
   */
-  else {
-    using namespace std::literals::string_literals;
-    throw std::runtime_error("Error mode. Please correct your mode name"s);
-  }
 
   /*
   auto golden = snig::read_golden_binary(golden_path);

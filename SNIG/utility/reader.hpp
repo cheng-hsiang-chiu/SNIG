@@ -826,6 +826,8 @@ size_t find_max_nnz_binary(
   const size_t num_layers,
   const size_t num_neurons_per_layer
 ) {
+
+  //std::cout << std::fs::canonical(weight_dir) << '\n';
   size_t max_nnz{0};
   for(size_t i = 0; i < num_layers; ++i) {
     std::fs::path p = weight_dir;

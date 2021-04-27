@@ -164,23 +164,25 @@ Eigen::Matrix<int, Eigen::Dynamic, 1> SNIG<T>::infer(
   Base<T>::log("Total input size : ", num_inputs, "\n");
   Base<T>::log("Input batch size : ", batch_size, "\n");
   Base<T>::log("Number of weight buffers : ", num_weight_buffers, "\n\n");
-  /*
+  
   _set_parameters(
     num_inputs,
     batch_size,
     num_weight_buffers,
     num_gpus);
-
+  
   _preprocess(input_path);
-
+  /*
   _infer();
 
   return arr_to_Eigen_int(_results, Base<T>::_num_inputs);
   */
+  Eigen::Matrix<int, Eigen::Dynamic, 1> result;
+  return result;
 }
 
 
-/*
+
 template <typename T>
 void SNIG<T>::_set_parameters(
   const size_t num_inputs,
@@ -211,17 +213,19 @@ void SNIG<T>::_preprocess(const std::fs::path& input_path) {
   //weight allocation
   _weight_alloc();
   //input allocation
-  _input_alloc();
+  //_input_alloc();
   //final results allocation
-  _result_alloc();
+  //_result_alloc();
   
   //read input
-  read_input_binary<T>(input_path, _source_Y);
+  //read_input_binary<T>(input_path, _source_Y);
 
   Base<T>::toc();
   Base<T>::log("Finish preprocessing with ", Base<T>::duration(), " ms", "\n");
 }
-*/
+
+
+
 
 /*
 template <typename T>
@@ -435,7 +439,7 @@ void SNIG<T>::_infer() {
   Base<T>::toc();
   Base<T>::log("Finish inference with ", Base<T>::duration(), " ms", "\n");
 }
-
+*/
 
 
 template <typename T>
@@ -446,7 +450,7 @@ void SNIG<T>::_weight_alloc() {
     for (auto& each_W : W) {
       each_W = (int*)sycl::malloc_device(
         Base<T>::_pp_wsize, 
-        Base<T>::_queue
+        Base<T>::queue
       );
     }
     _dev_W.push_back(W);
@@ -455,6 +459,7 @@ void SNIG<T>::_weight_alloc() {
 
 
 
+/*
 template <typename T>
 void SNIG<T>::_input_alloc() {
   

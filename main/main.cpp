@@ -146,8 +146,7 @@ int main(int argc, char* argv[]) {
       num_layers
     );
     
-    //result = 
-    snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
+    result = snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
   }
   /*
   else {

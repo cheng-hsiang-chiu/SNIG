@@ -174,10 +174,12 @@ Base<T>::Base(
   tf::Task numsecs = taskflow.emplace([nn, ss, &ns]() mutable {
     ns = nn / ss;
   }).name("numsecs");
-  
+ 
+  /* 
   tf::Task loadweight = taskflow.emplace([=](){
     _load_weight(weight_path); 
   }).name("loadweight");
+  */
   /*  
   sharedmemsize.precede(secsize);
   secsize.precede(numsecs);
@@ -185,7 +187,7 @@ Base<T>::Base(
   */
   sharedmemsize.precede(secsize);
   secsize.precede(numsecs);
-  numsecs.precede(loadweight);
+  //numsecs.precede(loadweight);
 
   executor.run(taskflow).wait();  // run the  
   //taskflow.dump(std::cout); 
@@ -203,7 +205,7 @@ Base<T>::Base(
 
 template <typename T>
 Base<T>::~Base() {
-  //sycl::free( _host_pinned_weight);
+  //sycl::free(_host_pinned_weight, queue);
   //cudaFreeHost(_host_pinned_weight);
   //checkCuda(cudaFreeHost(_host_pinned_weight));
 }
@@ -273,7 +275,8 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
   //  0,
   //  _pp_wsize * _num_layers
   //);
-  
+ 
+   
   read_weight_binary<T>(
     weight_path,
     _num_neurons,

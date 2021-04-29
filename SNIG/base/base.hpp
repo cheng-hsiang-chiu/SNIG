@@ -91,13 +91,13 @@ class Base {
 
     size_t num_layers() const;
 
-    //virtual void _preprocess(const std::fs::path& input_path) = 0;
+    virtual void _preprocess(const std::fs::path& input_path) = 0;
     
-    //virtual void _weight_alloc() = 0;
+    virtual void _weight_alloc() = 0;
 
-    //virtual void _input_alloc() = 0;
+    virtual void _input_alloc() = 0;
 
-    //virtual void _result_alloc() = 0;
+    virtual void _result_alloc() = 0;
 
     //virtual void _infer() = 0;
 };
@@ -175,19 +175,14 @@ Base<T>::Base(
     ns = nn / ss;
   }).name("numsecs");
  
-  /* 
+   
   tf::Task loadweight = taskflow.emplace([=](){
     _load_weight(weight_path); 
   }).name("loadweight");
-  */
-  /*  
+  
   sharedmemsize.precede(secsize);
   secsize.precede(numsecs);
   numsecs.precede(loadweight);
-  */
-  sharedmemsize.precede(secsize);
-  secsize.precede(numsecs);
-  //numsecs.precede(loadweight);
 
   executor.run(taskflow).wait();  // run the  
   //taskflow.dump(std::cout); 
@@ -225,6 +220,8 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
                _num_layers,
                _num_neurons
              );
+  
+  //////////// _max_nnz should not be hardcode
   _max_nnz = 32768;
 
   //std::cout << " _max_nnz = " << _max_nnz << "\n\n"; 

@@ -172,9 +172,9 @@ Eigen::Matrix<int, Eigen::Dynamic, 1> SNIG<T>::infer(
     num_gpus);
   
   _preprocess(input_path);
-  /*
+  
   _infer();
-
+  /*
   return arr_to_Eigen_int(_results, Base<T>::_num_inputs);
   */
   Eigen::Matrix<int, Eigen::Dynamic, 1> result;
@@ -213,12 +213,12 @@ void SNIG<T>::_preprocess(const std::fs::path& input_path) {
   //weight allocation
   _weight_alloc();
   //input allocation
-  //_input_alloc();
+  _input_alloc();
   //final results allocation
-  //_result_alloc();
+  _result_alloc();
   
   //read input
-  //read_input_binary<T>(input_path, _source_Y);
+  read_input_binary<T>(input_path, _source_Y);
 
   Base<T>::toc();
   Base<T>::log("Finish preprocessing with ", Base<T>::duration(), " ms", "\n");
@@ -227,7 +227,7 @@ void SNIG<T>::_preprocess(const std::fs::path& input_path) {
 
 
 
-/*
+
 template <typename T>
 void SNIG<T>::_infer() {
   Base<T>::log("Start inference...... ", "\n");
@@ -244,14 +244,14 @@ void SNIG<T>::_infer() {
   first_fetchs.reserve(Base<T>::_num_gpus);
   syclflows.reserve(Base<T>::_num_gpus);
   fetchs.reserve(Base<T>::_num_gpus);
-
+  
   std::atomic<size_t> finished_inputs{0};
   std::vector<int*> dev_results(Base<T>::_num_gpus, nullptr);
-
+  
   //dim3 grid_dim(_batch_size, Base<T>::_num_secs, 1);
 
   tf::Task start = taskflow.emplace([](){}).name("start");
-
+  
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     first_fetchs.emplace_back(taskflow.emplace([&, dev](){
       int is_end = 1;
@@ -269,7 +269,7 @@ void SNIG<T>::_infer() {
       }
       return is_end;
     }).name("first_fetch"));
-
+  
 
     syclflows.emplace_back(taskflow.emplace_on([&, dev](tf::syclFlow& sf){
       std::vector<tf::syclTask> weight_copies;
@@ -277,18 +277,17 @@ void SNIG<T>::_infer() {
       
       weight_copies.reserve(Base<T>::_num_layers);
       infers.reserve(Base<T>::_num_layers);
-
-      for (size_t cur_layer = 0; 
-           cur_layer < Base<T>::_num_layers; 
-           cur_layer += _num_weight_buffers) {
+      
+      for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; cur_layer += _num_weight_buffers) {
         for (size_t k = 0; k < _num_weight_buffers; ++k) {
           //tasks of syclflow
+          
           weight_copies.emplace_back(sf.copy(
             _dev_W[dev][k],
             Base<T>::_host_pinned_weight + (cur_layer + k) * Base<T>::_pp_wlen,
             Base<T>::_pp_wlen
           ).name("weight_copy"));
-
+           
           // transformed CSC weight matrix equals to CSR with exchanged row and col
           int* col_w = _dev_W[dev][k];
           int* row_w = _dev_W[dev][k] + Base<T>::_num_neurons * Base<T>::_num_secs + 1;
@@ -300,18 +299,19 @@ void SNIG<T>::_infer() {
           auto resized_batch = (M % 16 == 0) ? M : (M + 16 - M % 16);
           auto resized_secs = (K % 16 == 0) ? K : (K + 16 - K % 16); 
           
-          T* M_result;
-          bool* M_isnonzero;
+          //T* M_result;
+          //bool* M_isnonzero;
 
-          sycl::buffer<T> b_result(M_result, Base<T>::_sec_size);
-          sycl::buffer<bool> b_isnonzero(M_isnonzero, 2);
-
+          //const sycl::property_list props = {sycl::property::buffer::use_host_ptr()}; 
+          //sycl::buffer<T> b_result(M_result, sycl::range<1>{Base<T>::_sec_size});
+          //sycl::buffer<bool> b_isnonzero(M_isnonzero, sycl::range<1>{2});
+           
           infers.emplace_back(sf.on(
-            [=, &b_result, &b_isnonzero](sycl::handler& cgh) { 
-              auto p_result = b_result.template get_access<sycl::access::mode::read>(cgh);
-              auto p_isnonzero = b_isnonzero.template get_access<sycl::access::mode::read>(cgh);
-              auto localRange = sycl::range<1>(16*16);
-              
+            [=](sycl::handler& cgh) { 
+              //auto p_result = b_result.get_access<sycl::access::mode::read_write>(cgh);
+              //auto p_isnonzero = b_isnonzero.get_access<sycl::access::mode::read_write>(cgh);
+              auto localRange = sycl::range<1>(16 * 16);
+              /* 
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_result(localRange, cgh);
@@ -319,7 +319,7 @@ void SNIG<T>::_infer() {
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_isnonzero(localRange, cgh);
-              
+                
               auto si_dev_Y = _dev_Y[dev][k % 2];
               auto si_dev_is_nonzero_row = _dev_is_nonzero_row[dev][k % 2];
               auto si_dev_Y_1 = _dev_Y[dev][(k + 1) % 2];
@@ -328,7 +328,23 @@ void SNIG<T>::_infer() {
               auto si_num_secs = Base<T>::_num_secs;
               auto si_num_neurons = Base<T>::_num_neurons;
               auto si_bias = Base<T>::_bias;
-              
+              */ 
+              cgh.parallel_for<mxm_kernel>(
+                sycl::nd_range<2>{
+                  sycl::range<2>(resized_batch, resized_secs),
+                  sycl::range<2>(16, 16)},
+                [](sycl::nd_item<2> item) {
+                  
+                  int blockX = item.get_group(1);
+                  int blockY = item.get_group(0);
+
+                  // Current local item
+                  int localX = item.get_local_id(1);
+                  int localY = item.get_local_id(0); 
+                }
+              );
+               
+              /* 
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_batch, resized_secs), 
                 sycl::range<2>(16, 16)},
@@ -350,16 +366,17 @@ void SNIG<T>::_infer() {
                     p_b_isnonzero
                   );
                 }
-              );
+              );*/
             }).name("Inference")
           );
         }
       }
+      
 
      
       // TODO: consider parameterizing the thread numbers
       //tf::syclTask ident = cf.kernel(16, 512, 0, identify<T>, _dev_Y[dev][0], _batch_size, Base<T>::_num_neurons, dev_results[dev]);
-       
+      /* 
       auto bsize = _batch_size;
       auto nns = Base<T>::_num_neurons;
       auto dY = _dev_Y[dev][0];
@@ -382,8 +399,8 @@ void SNIG<T>::_infer() {
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
-      
-
+      */
+      /* 
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
         weight_copies[cur_layer].precede(infers[cur_layer]);
@@ -398,9 +415,10 @@ void SNIG<T>::_infer() {
       }
       
       infers[Base<T>::_num_layers - 1].precede(ident);
-    }, Base<T>::_queue).name("GPU"));
+      */
+    }, Base<T>::queue).name("GPU"));
 
-
+    /*
     fetchs.emplace_back(taskflow.emplace([&, dev](){
       int is_end = 1;
       size_t beg_inputs = finished_inputs.fetch_add(_batch_size);
@@ -416,30 +434,30 @@ void SNIG<T>::_infer() {
         
         is_end = 0;
       }
-
       return is_end;
-    }).name("fetch"));
-
+    }).name("fetch"));*/
   }
 
-  tf::Task stop = taskflow.emplace([](){}).name("stop");
-
+  tf::Task stop = taskflow.emplace([](){ std::cout << "stop inference ...\n";}).name("stop");
+  
   //dependencies of taskflow
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     start.precede(first_fetchs[dev]);
+    //first_fetchs[dev].precede(stop);
     first_fetchs[dev].precede(syclflows[dev], stop);
-    syclflows[dev].precede(fetchs[dev]);
-    fetchs[dev].precede(syclflows[dev], stop);
+    syclflows[dev].precede(stop);
+    //syclflows[dev].precede(fetchs[dev]);
+    //fetchs[dev].precede(syclflows[dev], stop);
   }
   
   executor.run(taskflow).wait();
 
   //checkCuda(cudaSetDevice(0));
-
+  
   Base<T>::toc();
   Base<T>::log("Finish inference with ", Base<T>::duration(), " ms", "\n");
 }
-*/
+
 
 
 template <typename T>
@@ -459,50 +477,47 @@ void SNIG<T>::_weight_alloc() {
 
 
 
-/*
 template <typename T>
 void SNIG<T>::_input_alloc() {
-  
   size_t ylen = Base<T>::_num_inputs * Base<T>::_num_neurons;
   size_t ysize = ylen * sizeof(T);
 
   _source_Y = sycl::malloc_shared<T>(
     ysize, 
-    Base<T>::_queue
+    Base<T>::queue
   );
-  
+   
   _source_is_nonzero_row = sycl::malloc_shared<bool>(
     sizeof(bool) * Base<T>::_num_inputs * Base<T>::_num_secs, 
-    Base<T>::_queue
+    Base<T>::queue
   );
-  
-  Base<T>::_queue.memset(
+   
+  Base<T>::queue.memset(
     _source_is_nonzero_row, 
     1, 
     sizeof(bool) * Base<T>::_num_inputs * Base<T>::_num_secs
   ).wait();
-  
+   
   std::vector<T*> Y{2, nullptr};
   std::vector<bool*> is_nonzero_row{2, nullptr};
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
-    
     Y[1] = sycl::malloc_device<T>(
       _batch_ysize, 
-      Base<T>::_queue
+      Base<T>::queue
     );
 
     is_nonzero_row[1] = (bool*)sycl::malloc_device(
       sizeof(bool) * _batch_size * Base<T>::_num_secs, 
-      Base<T>::_queue
+      Base<T>::queue
     );
     
-    Base<T>::_queue.memset(Y[1], 0, _batch_ysize);
-    Base<T>::_queue.memset(
+    Base<T>::queue.memset(Y[1], 0, _batch_ysize).wait();
+    Base<T>::queue.memset(
       is_nonzero_row[1], 
       0, 
       sizeof(bool) * _batch_size * Base<T>::_num_secs
-    );
+    ).wait();
 
     _dev_Y.push_back(Y);
     _dev_is_nonzero_row.push_back(is_nonzero_row);
@@ -515,16 +530,16 @@ template <typename T>
 void SNIG<T>::_result_alloc() {
   _results = sycl::malloc_shared<int>(
     sizeof(int) * Base<T>::_num_inputs, 
-    Base<T>::_queue
+    Base<T>::queue
   );
 
-  Base<T>::_queue.memset(
+  Base<T>::queue.memset(
     _results, 
     0, 
     sizeof(int) * Base<T>::_num_inputs
-  );
+  ).wait();
 }
-*/
+
 
 
 

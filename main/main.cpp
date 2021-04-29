@@ -148,12 +148,12 @@ int main(int argc, char* argv[]) {
     
     result = snig.infer(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
   }
-  /*
+  
   else {
     using namespace std::literals::string_literals;
     throw std::runtime_error("Error mode. Please correct your mode name"s);
   }
-  */
+  
 
 
   /*
@@ -180,8 +180,9 @@ int main(int argc, char* argv[]) {
   }
   */
 
-  /*
+   
   auto golden = snig::read_golden_binary(golden_path);
+  /*
   if(snig::is_passed(result, golden)) {
     std::cout << "CHALLENGE PASSED\n";
   }

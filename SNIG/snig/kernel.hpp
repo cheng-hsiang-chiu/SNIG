@@ -20,12 +20,12 @@ void snig_inference(
   sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
   sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero
 );
-*/
+
 template <typename T>
 void snig_inference(
   sycl::nd_item<2> item
 );
-
+*/
 
 
 template <typename T>
@@ -42,18 +42,19 @@ void snig_inference(
   bool* is_nonzero_row_1,
   T* Y_1,
   sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results 
+  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results, 
+  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero
 );
 //-----------------------------------------------------------------------------
 //Definition of kernel function
 //-----------------------------------------------------------------------------
-
+/*
 template <typename T>
 void snig_inference1(
   sycl::nd_item<2> item) {
   int tid = item.get_global_linear_id();
 }
-
+*/
 
 template <typename T>
 void snig_inference(
@@ -69,7 +70,8 @@ void snig_inference(
   bool* is_nonzero_row_1,
   T* Y_1,
   sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results) {
+  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
+  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero) {
 
   /*  
   auto localRange = sycl::range<1>(16 * 16);
@@ -124,7 +126,7 @@ void snig_inference(
     }
     return;
   }
-  
+    
   //forward feeding
   ////extern __shared__ T results[];
 
@@ -132,7 +134,7 @@ void snig_inference(
   for (size_t k = tid; k < sec_size; k += num_threads) {
     p_b_results[k] = bias;  
   }
-  /*
+   
   //use bool array size of 2 (is_nonzero) in share memory to avoid synchronization
   //is_nonzero[1] represents whether this row is nonzero
   //if is_nonzero[1] is true, this row is nonzero
@@ -143,14 +145,12 @@ void snig_inference(
   }
   ////__syncthreads();
   item.barrier(sycl::access::fence_space::local_space);
-  
+   
   for (size_t s_i = 0; s_i < num_secs; ++s_i) {
     if (!is_nonzero_row_0[item.get_group(1) * num_secs + s_i]) {
       continue;
     }
-    ////if(!is_nonzero_row_0[blockIdx.x * num_secs + s_i]) {
-    ////  continue;
-    ////}
+    
     for (size_t j = item.get_local_id(0) + s_i * sec_size; 
          j < (s_i + 1) * sec_size; 
          j += 16) {
@@ -170,12 +170,13 @@ void snig_inference(
           T,
           sycl::ONEAPI::memory_order_relaxed,
           sycl::ONEAPI::memory_scope::device,
-          sycl::access::address_space::global_space
+          sycl::access::address_space::local_space
         >{p_b_results[roww - item.get_group(0) * sec_size]};
 
         ref.fetch_add(valY * valw);
         //atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
       }
+      
     }
     ////for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {
     ////  T valY = Y_0[blockIdx.x * num_neurons + j];
@@ -193,7 +194,7 @@ void snig_inference(
   }
   ////__syncthreads();
   item.barrier(sycl::access::fence_space::local_space);
-
+  
   for (size_t i = tid; i < sec_size; i += num_threads) {
     T v = std::min(T(32), std::max(p_b_results[i], T(0)));
     Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
@@ -210,7 +211,7 @@ void snig_inference(
     is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
     ////is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = is_nonzero[1];
   }
-  */
+   
 }
 
 }// end of namespace snig ----------------------------------------------

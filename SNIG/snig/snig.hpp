@@ -298,7 +298,7 @@ void SNIG<T>::_infer() {
 
           auto resized_batch = (M % 16 == 0) ? M : (M + 16 - M % 16);
           auto resized_secs = (K % 16 == 0) ? K : (K + 16 - K % 16); 
-          
+           
           //T* M_result;
           //bool* M_isnonzero;
 
@@ -311,7 +311,7 @@ void SNIG<T>::_infer() {
               //auto p_result = b_result.get_access<sycl::access::mode::read_write>(cgh);
               //auto p_isnonzero = b_isnonzero.get_access<sycl::access::mode::read_write>(cgh);
               auto localRange = sycl::range<1>(16 * 16);
-              /* 
+               
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_result(localRange, cgh);
@@ -328,7 +328,7 @@ void SNIG<T>::_infer() {
               auto si_num_secs = Base<T>::_num_secs;
               auto si_num_neurons = Base<T>::_num_neurons;
               auto si_bias = Base<T>::_bias;
-              */ 
+              /* 
               cgh.parallel_for<mxm_kernel>(
                 sycl::nd_range<2>{
                   sycl::range<2>(resized_batch, resized_secs),
@@ -343,12 +343,14 @@ void SNIG<T>::_infer() {
                   int localY = item.get_local_id(0); 
                 }
               );
+              */ 
                
-              /* 
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_batch, resized_secs), 
                 sycl::range<2>(16, 16)},
-                [=](sycl::nd_item<2> item)  {
+                [=](sycl::nd_item<2> item) {
+                  //snig_inference1<T>(item);
+                  
                   snig_inference<T>(
                     si_dev_Y,
                     si_dev_is_nonzero_row,
@@ -362,11 +364,11 @@ void SNIG<T>::_infer() {
                     si_dev_is_nonzero_row_1,
                     si_dev_Y_1,
                     item,
-                    p_b_result,
-                    p_b_isnonzero
+                    p_b_result
                   );
+                
                 }
-              );*/
+              );
             }).name("Inference")
           );
         }
@@ -400,7 +402,7 @@ void SNIG<T>::_infer() {
         }
       ).name("ident");
       */
-      /* 
+       
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
         weight_copies[cur_layer].precede(infers[cur_layer]);
@@ -414,8 +416,8 @@ void SNIG<T>::_infer() {
         }
       }
       
-      infers[Base<T>::_num_layers - 1].precede(ident);
-      */
+      //infers[Base<T>::_num_layers - 1].precede(ident);
+      
     }, Base<T>::queue).name("GPU"));
 
     /*

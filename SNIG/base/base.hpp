@@ -152,9 +152,9 @@ Base<T>::Base(
   tf::Taskflow taskflow;
    
   size_t shared_mem_size = queue.get_device().get_info<sycl::info::device::local_mem_size>();
-  auto nn = Base<T>::_num_neurons;
-  auto& ss = _sec_size;
-  auto& ns = _num_secs;
+  size_t nn = Base<T>::_num_neurons;
+  size_t& ss = _sec_size;
+  size_t& ns = _num_secs;
   /*
   queue.submit([](sycl::handler& handler){
     handler.single_task([](){});
@@ -167,27 +167,28 @@ Base<T>::Base(
   }, queue).name("sharedmemsize");
 
   
-  tf::Task secsize = taskflow.emplace([nn,shared_mem_size, &ss]() mutable {
+  tf::Task secsize = taskflow.emplace([nn,shared_mem_size, &ss, &ns]() mutable {
     ss = get_sec_size<T>(nn, shared_mem_size);
-  }).name("secsize");
-  
-  tf::Task numsecs = taskflow.emplace([nn, ss, &ns]() mutable {
     ns = nn / ss;
+  }).name("secsize");
+  /* 
+  tf::Task numsecs = taskflow.emplace([nn, ss, &ns]() mutable {
+    ns = get_num_sec<T>(nn, ss);
   }).name("numsecs");
- 
+  */
    
   tf::Task loadweight = taskflow.emplace([=](){
     _load_weight(weight_path); 
   }).name("loadweight");
   
   sharedmemsize.precede(secsize);
-  secsize.precede(numsecs);
-  numsecs.precede(loadweight);
+  //secsize.precede(numsecs);
+  secsize.precede(loadweight);
 
   executor.run(taskflow).wait();  // run the  
   //taskflow.dump(std::cout); 
   
-  /*
+  /* 
   std::cout << "shared memory size = " << shared_mem_size << '\n'; 
   std::cout << "_sec_size = " << _sec_size << ", ss = " << ss << '\n';
   std::cout << "_num_secs = " << _num_secs << ", ns = " << ns << '\n';

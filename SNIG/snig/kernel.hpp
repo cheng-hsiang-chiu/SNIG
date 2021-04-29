@@ -23,24 +23,10 @@ void snig_inference(
 */
 template <typename T>
 void snig_inference(
-  const T* Y_0,
-  const bool* is_nonzero_row_0,
-  const size_t sec_size,
-  const size_t num_secs,
-  const size_t num_neurons,
-  const int* col_w,
-  const int* row_w,
-  const T* val_w,
-  const T bias,
-  bool* is_nonzero_row_1,
-  T* Y_1,
-  sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero
+  sycl::nd_item<2> item
 );
-//-----------------------------------------------------------------------------
-//Definition of kernel function
-//-----------------------------------------------------------------------------
+
+
 
 template <typename T>
 void snig_inference(
@@ -56,8 +42,45 @@ void snig_inference(
   bool* is_nonzero_row_1,
   T* Y_1,
   sycl::nd_item<2> item,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results,
-  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_is_nonzero) {
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results 
+);
+//-----------------------------------------------------------------------------
+//Definition of kernel function
+//-----------------------------------------------------------------------------
+
+template <typename T>
+void snig_inference1(
+  sycl::nd_item<2> item) {
+  int tid = item.get_global_linear_id();
+}
+
+
+template <typename T>
+void snig_inference(
+  const T* Y_0,
+  const bool* is_nonzero_row_0,
+  const size_t sec_size,
+  const size_t num_secs,
+  const size_t num_neurons,
+  const int* col_w,
+  const int* row_w,
+  const T* val_w,
+  const T bias,
+  bool* is_nonzero_row_1,
+  T* Y_1,
+  sycl::nd_item<2> item,
+  sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local> p_b_results) {
+
+  /*  
+  auto localRange = sycl::range<1>(16 * 16);
+  sycl::accessor<T, 1, 
+    sycl::access::mode::read_write, 
+    sycl::access::target::local> p_b_result(localRange, cgh);
+ 
+  sycl::accessor<T, 1, 
+    sycl::access::mode::read_write, 
+    sycl::access::target::local> p_b_isnonzero(localRange, cgh);
+  */
 
   //int row = item.get_global_id(0);
   //int col = item.get_global_id(1);
@@ -67,14 +90,14 @@ void snig_inference(
   //s_o = blockIdx.y
   ////int num_threads = blockDim.x * blockDim.y;
   int num_threads = 256;
-
+  
   //num_secs is small enough to compute by each single thread
   bool is_all_zero = true;
   for (size_t s_i = 0; s_i < num_secs; ++s_i) {
     is_all_zero &= !is_nonzero_row_0[item.get_group(1) * num_secs + s_i];
     ////is_all_zero &= !is_nonzero_row_0[blockIdx.x * num_secs + s_i];
   }
-
+  
   if (is_all_zero) {
     //incremental memory resetting
     //avoid calling cudaMemset
@@ -101,7 +124,7 @@ void snig_inference(
     }
     return;
   }
-
+  
   //forward feeding
   ////extern __shared__ T results[];
 
@@ -109,7 +132,7 @@ void snig_inference(
   for (size_t k = tid; k < sec_size; k += num_threads) {
     p_b_results[k] = bias;  
   }
-
+  /*
   //use bool array size of 2 (is_nonzero) in share memory to avoid synchronization
   //is_nonzero[1] represents whether this row is nonzero
   //if is_nonzero[1] is true, this row is nonzero
@@ -187,6 +210,7 @@ void snig_inference(
     is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
     ////is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = is_nonzero[1];
   }
+  */
 }
 
 }// end of namespace snig ----------------------------------------------

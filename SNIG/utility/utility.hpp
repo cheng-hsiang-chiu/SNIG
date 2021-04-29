@@ -9,6 +9,11 @@ size_t get_sec_size(
   const size_t num_neurons,
   const size_t sharedMemPerBlock);
 
+template<typename T>
+size_t get_num_sec(
+  const size_t num_neurons,
+  const size_t sec_size);
+
 inline
 float average_zero_percent_in_non_empty_rows(
   int* rlenY,
@@ -55,6 +60,18 @@ size_t get_sec_size(const size_t num_neurons,
   }
   return sec_size;
 }
+
+
+template<typename T>
+size_t get_num_sec(const size_t num_neurons,
+                   const size_t sec_size) {
+  size_t num_sec{0};
+  std::cout << "num_neurons = " << num_neurons << " sec_size = " << sec_size << '\n';
+  num_sec = num_neurons / sec_size;
+  return num_sec;
+}
+
+
 
 inline
 float average_zero_percent_in_non_empty_rows(

@@ -16,8 +16,7 @@ void identify(
   const size_t batch_size,
   const size_t num_neurons_per_layer,
   int* result_arr,
-  sycl::nd_item<1> item,
-  tf::syclFlow& sf
+  sycl::nd_item<1> item
 );
 */
 
@@ -64,12 +63,10 @@ void identify(
   const size_t batch_size,
   const size_t num_neurons_per_layer,
   int* result_arr,
-  sycl::nd_item<1> item,
-  tf::syclFlow& sf
-) {
+  sycl::nd_item<1> item) {
 
   //sycl::queue queue;
-  //tf::syclFlow syclflow(queue);
+  tf::syclFlow sf(Base<T>::queue);
 
   int tid = item.get_global_linear_id();
   //int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -84,8 +81,9 @@ void identify(
     );
     result_arr[i] = sum > 0 ? 1 : 0;
   }
-};
+}
 */
+
 
 template<typename T>
 Eigen::Matrix<int, Eigen::Dynamic, 1> get_score(

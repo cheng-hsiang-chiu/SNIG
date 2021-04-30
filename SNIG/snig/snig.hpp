@@ -399,7 +399,7 @@ void SNIG<T>::_infer() {
             }
             dr[i] = sum > 0 ? 1 : 0;
           }
-          identify<T>(dY, bsize, nns, dr, item);                                 
+          //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
       

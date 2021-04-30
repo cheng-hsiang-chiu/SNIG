@@ -624,6 +624,7 @@ void read_weight_binary(
     in.read((char*)&rows, sizeof(size_t));
     in.read((char*)&nnz, sizeof(size_t));
     in.read((char*)location, sizeof(int) * (rows * N_SLAB + 1 + nnz) + sizeof(T) * nnz);
+    std::cout << "rows = " << rows << " nnz = " << nnz << " location = " << *location << '\n';
   }
 }
 

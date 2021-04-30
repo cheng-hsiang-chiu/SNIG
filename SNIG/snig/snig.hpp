@@ -399,7 +399,7 @@ void SNIG<T>::_infer() {
             }
             dr[i] = sum > 0 ? 1 : 0;
           }
-          //identify<T>(dY, bsize, nns, dr, item);                                 
+          identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
       
@@ -446,14 +446,14 @@ void SNIG<T>::_infer() {
   //dependencies of taskflow
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     start.precede(first_fetchs[dev]);
-    //first_fetchs[dev].precede(stop);
     first_fetchs[dev].precede(syclflows[dev], stop);
-    //syclflows[dev].precede(stop);
     syclflows[dev].precede(fetchs[dev]);
     fetchs[dev].precede(syclflows[dev], stop);
   }
   
   executor.run(taskflow).wait();
+
+  //taskflow.dump(std::cout);
 
   //checkCuda(cudaSetDevice(0));
   

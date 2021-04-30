@@ -178,27 +178,12 @@ void snig_inference(
       }
       
     }
-    ////for(size_t j = threadIdx.y + s_i * sec_size; j < (s_i + 1) * sec_size; j += blockDim.y) {
-    ////  T valY = Y_0[blockIdx.x * num_neurons + j];
-    ////  if(valY == 0) {
-    ////    continue;
-    ////  }
-    ////  int beg_w = col_w[blockIdx.y * num_neurons + j] + threadIdx.x;
-    ////  int end_w = col_w[blockIdx.y * num_neurons + j + 1];
-    ////  for(int k = beg_w; k < end_w; k += blockDim.x) {
-    ////    int roww = row_w[k];
-    ////    T valw = val_w[k];
-    ////    atomicAdd(&results[roww - blockIdx.y * sec_size], valY * valw);
-    ////  }
-    ////}
   }
-  ////__syncthreads();
   item.barrier(sycl::access::fence_space::local_space);
   
   for (size_t i = tid; i < sec_size; i += num_threads) {
     T v = std::min(T(32), std::max(p_b_results[i], T(0)));
     Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
-    ////Y_1[blockIdx.x * num_neurons + blockIdx.y * sec_size + i] = v;
     p_b_is_nonzero[v != 0] = true;
   }
 
@@ -209,9 +194,10 @@ void snig_inference(
   item.barrier(sycl::access::fence_space::local_space);
   if (tid == 0) {
     is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
-    ////is_nonzero_row_1[blockIdx.x * num_secs + blockIdx.y] = is_nonzero[1];
   }
-   
 }
+
+
+
 
 }// end of namespace snig ----------------------------------------------

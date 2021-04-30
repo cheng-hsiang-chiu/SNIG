@@ -9,10 +9,14 @@ size_t get_sec_size(
   const size_t num_neurons,
   const size_t sharedMemPerBlock);
 
+
+
 template<typename T>
 size_t get_num_sec(
   const size_t num_neurons,
   const size_t sec_size);
+
+
 
 inline
 float average_zero_percent_in_non_empty_rows(
@@ -22,8 +26,12 @@ float average_zero_percent_in_non_empty_rows(
   size_t nerowsY
 );
 
+
+
 inline
 void num_nonzero_row_percent(std::vector<size_t>& nerows);
+
+
 
 inline
 void num_nonzero_row(std::vector<size_t>& nerows);
@@ -62,6 +70,7 @@ size_t get_sec_size(const size_t num_neurons,
 }
 
 
+
 template<typename T>
 size_t get_num_sec(const size_t num_neurons,
                    const size_t sec_size) {
@@ -78,19 +87,19 @@ float average_zero_percent_in_non_empty_rows(
   int* rlenY,
   int* rowsY,
   size_t num_features,
-  size_t nerowsY
-) {
+  size_t nerowsY) {
+
   int total_zero{0};
   for(int i = 0; i < nerowsY; ++i) {
     total_zero += num_features - rlenY[rowsY[i]];
   }
   return (100 * (total_zero / float(num_features * nerowsY)));
+}
 
-};
+
 
 inline
-void num_nonzero_row_percent(std::vector<size_t>& nerows)
-{
+void num_nonzero_row_percent(std::vector<size_t>& nerows) {
   std::cout << "\nPerencetage of number of nonzero rows of each GPU : ";
   size_t total = std::accumulate(nerows.begin(), nerows.end(), 0);
   for(auto& num : nerows) {
@@ -98,14 +107,17 @@ void num_nonzero_row_percent(std::vector<size_t>& nerows)
   }
 }
 
+
+
 inline
-void num_nonzero_row(std::vector<size_t>& nerows)
-{
+void num_nonzero_row(std::vector<size_t>& nerows){
   std::cout << "\nNumber of nonzero rows of each GPU : ";
   size_t total = std::accumulate(nerows.begin(), nerows.end(), 0);
   for(auto& num : nerows) {
     std::cout << num << " ";
   }
 }
+
+
 
 }// end of namespace snig ----------------------------------------------

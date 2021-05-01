@@ -174,11 +174,11 @@ Eigen::Matrix<int, Eigen::Dynamic, 1> SNIG<T>::infer(
   _preprocess(input_path);
   
   _infer();
-  /*
+  
   return arr_to_Eigen_int(_results, Base<T>::_num_inputs);
-  */
-  Eigen::Matrix<int, Eigen::Dynamic, 1> result;
-  return result;
+  
+  //Eigen::Matrix<int, Eigen::Dynamic, 1> result;
+  //return result;
 }
 
 
@@ -472,12 +472,12 @@ void SNIG<T>::_input_alloc() {
   size_t ysize = ylen * sizeof(T);
 
   _source_Y = sycl::malloc_shared<T>(
-    ysize, 
+    ylen, 
     Base<T>::queue
   );
    
   _source_is_nonzero_row = sycl::malloc_shared<bool>(
-    sizeof(bool) * Base<T>::_num_inputs * Base<T>::_num_secs, 
+    Base<T>::_num_inputs * Base<T>::_num_secs, 
     Base<T>::queue
   );
    
@@ -492,12 +492,12 @@ void SNIG<T>::_input_alloc() {
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     Y[1] = sycl::malloc_device<T>(
-      _batch_ysize, 
+      _batch_ysize/sizeof(T), 
       Base<T>::queue
     );
 
-    is_nonzero_row[1] = (bool*)sycl::malloc_device(
-      sizeof(bool) * _batch_size * Base<T>::_num_secs, 
+    is_nonzero_row[1] = sycl::malloc_devicei<bool>(
+      _batch_size * Base<T>::_num_secs, 
       Base<T>::queue
     );
     

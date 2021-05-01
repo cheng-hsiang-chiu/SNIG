@@ -310,7 +310,7 @@ void SNIG<T>::_infer() {
             [=](sycl::handler& cgh) { 
               //auto p_result = b_result.get_access<sycl::access::mode::read_write>(cgh);
               //auto p_isnonzero = b_isnonzero.get_access<sycl::access::mode::read_write>(cgh);
-              auto localRange = sycl::range<1>(16 * 16);
+              //auto localRange = sycl::range<1>(2);
                
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
@@ -318,7 +318,7 @@ void SNIG<T>::_infer() {
 
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
-                sycl::access::target::local> p_b_is_nonzero(localRange, cgh);
+                sycl::access::target::local> p_b_is_nonzero(sycl::range<1>{2}, cgh);
                 
               auto si_dev_Y = _dev_Y[dev][k % 2];
               auto si_dev_is_nonzero_row = _dev_is_nonzero_row[dev][k % 2];

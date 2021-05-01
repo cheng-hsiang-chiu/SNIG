@@ -167,7 +167,8 @@ void snig_inference(
       for (int k = beg_w; k < end_w; k += 16) {
         int roww = row_w[k];
         T valw = val_w[k];
-        
+        p_b_results[roww - item.get_group(0) * sec_size] += (valY * valw);
+        /*
         auto ref = sycl::ONEAPI::atomic_ref<
           T,
           sycl::ONEAPI::memory_order_seq_cst,
@@ -176,7 +177,7 @@ void snig_inference(
         >{p_b_results[roww - item.get_group(0) * sec_size]};
         
         ref.fetch_add(valY * valw);
-        
+        */
         //atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
       }  
     }

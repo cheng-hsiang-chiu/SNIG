@@ -455,8 +455,8 @@ void SNIG<T>::_weight_alloc() {
 
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     for (auto& each_W : W) {
-      each_W = (int*)sycl::malloc_device(
-        Base<T>::_pp_wsize, 
+      each_W = sycl::malloc_device<int>(
+        Base<T>::_pp_wsize / sizeof(int), 
         Base<T>::queue
       );
     }
@@ -496,7 +496,7 @@ void SNIG<T>::_input_alloc() {
       Base<T>::queue
     );
 
-    is_nonzero_row[1] = sycl::malloc_devicei<bool>(
+    is_nonzero_row[1] = sycl::malloc_device<bool>(
       _batch_size * Base<T>::_num_secs, 
       Base<T>::queue
     );
@@ -518,7 +518,7 @@ void SNIG<T>::_input_alloc() {
 template <typename T>
 void SNIG<T>::_result_alloc() {
   _results = sycl::malloc_shared<int>(
-    sizeof(int) * Base<T>::_num_inputs, 
+    Base<T>::_num_inputs, 
     Base<T>::queue
   );
 

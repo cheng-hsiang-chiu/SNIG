@@ -130,12 +130,11 @@ Base<T>::Base(
   const std::fs::path& weight_path,
   const T bias,
   const size_t num_neurons,
-  const size_t num_layers
-) : 
+  const size_t num_layers) : 
   _bias{bias},
   _num_neurons{num_neurons},
-  _num_layers{num_layers}
-{
+  _num_layers{num_layers} {
+
   std::cout << "Base constructor\n";
   /* 
   sycl::platform platform = sycl::platform::get_platforms()[0];

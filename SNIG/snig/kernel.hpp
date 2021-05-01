@@ -22,7 +22,7 @@ void snig_inference(
 );
 
 template <typename T>
-void snig_inference(
+void snig_inference1(
   sycl::nd_item<2> item
 );
 */
@@ -55,6 +55,7 @@ void snig_inference1(
   int tid = item.get_global_linear_id();
 }
 */
+
 
 template <typename T>
 void snig_inference(
@@ -126,7 +127,7 @@ void snig_inference(
     }
     return;
   }
-    
+     
   //forward feeding
   ////extern __shared__ T results[];
 
@@ -150,7 +151,7 @@ void snig_inference(
     if (!is_nonzero_row_0[item.get_group(1) * num_secs + s_i]) {
       continue;
     }
-    
+     
     for (size_t j = item.get_local_id(0) + s_i * sec_size; 
          j < (s_i + 1) * sec_size; 
          j += 16) {
@@ -170,26 +171,25 @@ void snig_inference(
         /*
         auto ref = sycl::ONEAPI::atomic_ref<
           T,
-          sycl::ONEAPI::memory_order_relaxed,
+          sycl::ONEAPI::memory_order_seq_cst,
           sycl::ONEAPI::memory_scope::device,
           sycl::access::address_space::local_space
         >{p_b_results[roww - item.get_group(0) * sec_size]};
-
+        
         ref.fetch_add(valY * valw);
         */
         //atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
-      }
-      
+      }  
     }
   }
   item.barrier(sycl::access::fence_space::local_space);
-  
+  /* 
   for (size_t i = tid; i < sec_size; i += num_threads) {
     T v = std::min(T(32), std::max(p_b_results[i], T(0)));
     Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
     p_b_is_nonzero[v != 0] = true;
   }
-
+  
   //if one thread sets is_nonzero[1] to true
   //meaning this row is nonzero
   //toggle is_nonzero_row_1[this row] to true
@@ -198,6 +198,7 @@ void snig_inference(
   if (tid == 0) {
     is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
   }
+  */
 }
 
 

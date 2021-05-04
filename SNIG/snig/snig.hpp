@@ -201,6 +201,14 @@ void SNIG<T>::_set_parameters(
   _dev_W.reserve(Base<T>::_num_gpus);
   _dev_Y.reserve(Base<T>::_num_gpus);
   _dev_is_nonzero_row.reserve(Base<T>::_num_gpus);
+  /*
+  std::cout << "Base<T>::_num_inputs = " << Base<T>::_num_inputs << '\n';
+  std::cout << "Base<T>::_num_gpus = " << Base<T>::_num_gpus << '\n';
+  std::cout << "_num_weight_buffers = " << num_weight_buffers << '\n';
+  std::cout << "_batch_size = " << _batch_size << '\n';
+  std::cout << "_batch_ylen = " << _batch_ylen << '\n';
+  std::cout << "_batch_ysize = " << _batch_ysize << '\n';
+  */
 }
 
 
@@ -249,7 +257,7 @@ void SNIG<T>::_infer() {
   std::vector<int*> dev_results(Base<T>::_num_gpus, nullptr);
   
   //dim3 grid_dim(_batch_size, Base<T>::_num_secs, 1);
-
+  //std::cout << "_num_secs = " << Base<T>::_num_secs << '\n';
   tf::Task start = taskflow.emplace([](){}).name("start");
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
@@ -287,12 +295,12 @@ void SNIG<T>::_infer() {
             Base<T>::_host_pinned_weight + (cur_layer + k) * Base<T>::_pp_wlen,
             Base<T>::_pp_wlen
           ).name("weight_copy"));
-           
+         
           // transformed CSC weight matrix equals to CSR with exchanged row and col
           int* col_w = _dev_W[dev][k];
           int* row_w = _dev_W[dev][k] + Base<T>::_num_neurons * Base<T>::_num_secs + 1;
           T* val_w = (T*)(_dev_W[dev][k] + Base<T>::_p_w_index_len);
-       
+           
           auto M = _batch_size;
           auto K = Base<T>::_num_secs;
 
@@ -386,11 +394,11 @@ void SNIG<T>::_infer() {
         }
       ).name("ident");
       */
-      /* 
+       
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
         weight_copies[cur_layer].precede(infers[cur_layer]);
-
+        
         if (cur_layer + _num_weight_buffers < Base<T>::_num_layers) {
           infers[cur_layer].precede(weight_copies[cur_layer + _num_weight_buffers]);
         }
@@ -400,8 +408,8 @@ void SNIG<T>::_infer() {
         }
       }
       
-      infers[Base<T>::_num_layers - 1].precede(ident);
-      */
+      //infers[Base<T>::_num_layers - 1].precede(ident);
+      
     }, Base<T>::queue).name("GPU"));
 
     /* 
@@ -472,7 +480,7 @@ void SNIG<T>::_input_alloc() {
   size_t ysize = ylen * sizeof(T);
 
   _source_Y = sycl::malloc_shared<T>(
-    ylen, 
+    ysize / sizeof(T), 
     Base<T>::queue
   );
    
@@ -486,13 +494,13 @@ void SNIG<T>::_input_alloc() {
     1, 
     sizeof(bool) * Base<T>::_num_inputs * Base<T>::_num_secs
   ).wait();
-   
+
   std::vector<T*> Y{2, nullptr};
   std::vector<bool*> is_nonzero_row{2, nullptr};
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     Y[1] = sycl::malloc_device<T>(
-      _batch_ysize/sizeof(T), 
+      _batch_ysize / sizeof(T), 
       Base<T>::queue
     );
 
@@ -511,6 +519,12 @@ void SNIG<T>::_input_alloc() {
     _dev_Y.push_back(Y);
     _dev_is_nonzero_row.push_back(is_nonzero_row);
   }
+  /*
+  std::cout << "Base<T>::_num_inputs = " << Base<T>::_num_inputs << '\n';
+  std::cout << "Base<T>::_num_secs = " << Base<T>::_num_secs << '\n';
+  std::cout << "_batch_size = " << _batch_size << '\n';
+  std::cout << "_batch_ysize = " << _batch_ysize << '\n';
+  */
 }
 
 

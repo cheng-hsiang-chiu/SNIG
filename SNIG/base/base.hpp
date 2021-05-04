@@ -99,7 +99,7 @@ class Base {
 
     virtual void _result_alloc() = 0;
 
-    //virtual void _infer() = 0;
+    virtual void _infer() = 0;
 };
 
 // ----------------------------------------------------------------------------
@@ -200,7 +200,7 @@ Base<T>::Base(
 
 template <typename T>
 Base<T>::~Base() {
-  //sycl::free(_host_pinned_weight, queue);
+  sycl::free(_host_pinned_weight, queue);
   //cudaFreeHost(_host_pinned_weight);
   //checkCuda(cudaFreeHost(_host_pinned_weight));
 }
@@ -221,9 +221,6 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
                _num_neurons
              );
   
-  //////////// _max_nnz should not be hardcode
-  _max_nnz = 32768;
-
   //std::cout << " _max_nnz = " << _max_nnz << "\n\n"; 
   // total length of row and col index
   // value index should consider sizeof(T)
@@ -261,7 +258,7 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
   ));
   */
 
-  _host_pinned_weight = sycl::malloc_shared<int>(_pp_wsize*_num_layers/sizeof(int), queue); 
+  _host_pinned_weight = sycl::malloc_shared<int>(_pp_wsize * _num_layers / sizeof(int), queue); 
 
   queue.memset(_host_pinned_weight, 0, _pp_wsize * _num_layers).wait();
 
@@ -304,6 +301,8 @@ void Base<T>::tic() {
   _enable_toc = true;
 }
 
+
+
 template<typename T>
 void Base<T>::toc() {
   if(_enable_toc) {
@@ -334,6 +333,8 @@ void Base<T>::_cout(L&& last) const {
   std::cout << last << std::flush;
 }
 
+
+
 template <typename T>
 template <typename First, typename... Remain>
 void Base<T>::_cout(First&& item, Remain&&... remain) const {
@@ -343,17 +344,19 @@ void Base<T>::_cout(First&& item, Remain&&... remain) const {
 
 
 
-/*
+
 template <typename T>
 size_t Base<T>::num_neurons() const {
    return _num_neurons; 
 }
 
+
+
 template <typename T>
 size_t Base<T>::num_layers() const { 
   return _num_layers; 
 }
-*/
+
 
 
 

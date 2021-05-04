@@ -774,8 +774,10 @@ void read_input_binary(
   in.read((char*)&num_features, sizeof(size_t));
 
   ////// num_inputs and num_feature should not be hardcode
-  num_inputs = 60000;
-  num_features = 1024;
+  //num_inputs = 60000;
+  //num_features = 1024;
+  //std::cout << "num_inputs = " << num_inputs << '\n';
+  //std::cout << "num_features = " << num_features << '\n';
   in.read((char*)arr, sizeof(T) * num_inputs * num_features);
 }
 

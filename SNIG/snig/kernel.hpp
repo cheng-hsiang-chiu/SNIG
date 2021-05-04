@@ -167,8 +167,9 @@ void snig_inference(
       for (int k = beg_w; k < end_w; k += 16) {
         int roww = row_w[k];
         T valw = val_w[k];
-        p_b_results[roww - item.get_group(0) * sec_size] += (valY * valw);
-        /*
+        assert((roww - item.get_group(0) * sec_size) > 0);
+        //p_b_results[roww - item.get_group(0) * sec_size] += (valY * valw);
+        /* 
         auto ref = sycl::ONEAPI::atomic_ref<
           T,
           sycl::ONEAPI::memory_order_seq_cst,

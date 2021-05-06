@@ -240,7 +240,7 @@ template <typename T>
 void SNIG<T>::_infer() {
   Base<T>::log("Start inference...... ", "\n");
   Base<T>::tic();
-
+  
   //Use taskflow and syclGraph to implement task graph
   tf::Taskflow taskflow("SNIG");
   tf::Executor executor;
@@ -301,8 +301,8 @@ void SNIG<T>::_infer() {
           int* row_w = _dev_W[dev][k] + Base<T>::_num_neurons * Base<T>::_num_secs + 1;
           T* val_w = (T*)(_dev_W[dev][k] + Base<T>::_p_w_index_len);
            
-          auto M = _batch_size;
-          auto K = Base<T>::_num_secs;
+          auto M = _batch_size * 2;
+          auto K = 512 * Base<T>::_num_secs;
 
           auto resized_batch = (M % 16 == 0) ? M : (M + 16 - M % 16);
           auto resized_secs = (K % 16 == 0) ? K : (K + 16 - K % 16); 
@@ -324,7 +324,7 @@ void SNIG<T>::_infer() {
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_result(sycl::range<1>{Base<T>::_sec_size}, cgh);
 
-              sycl::accessor<T, 1, 
+              sycl::accessor<bool, 1, 
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_is_nonzero(sycl::range<1>{2}, cgh);
                 
@@ -367,7 +367,7 @@ void SNIG<T>::_infer() {
       }
       
 
-      /*
+      
       // TODO: consider parameterizing the thread numbers
       //tf::syclTask ident = cf.kernel(16, 512, 0, identify<T>, _dev_Y[dev][0], _batch_size, Base<T>::_num_neurons, dev_results[dev]);
        
@@ -376,7 +376,8 @@ void SNIG<T>::_infer() {
       auto dY = _dev_Y[dev][0];
       auto dr = dev_results[dev];
       
-       
+      std::cout << "batch size = " << bsize << '\n';
+
       tf::syclTask ident = sf.parallel_for(
         sycl::nd_range<1>{sycl::range<1>(8192), sycl::range<1>(512)}, 
         [=](sycl::nd_item<1> item) {
@@ -393,7 +394,7 @@ void SNIG<T>::_infer() {
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
-      */
+      
        
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
@@ -408,11 +409,11 @@ void SNIG<T>::_infer() {
         }
       }
       
-      //infers[Base<T>::_num_layers - 1].precede(ident);
+      infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
 
-    /* 
+     
     fetchs.emplace_back(taskflow.emplace([&, dev](){
       int is_end = 1;
       size_t beg_inputs = finished_inputs.fetch_add(_batch_size);
@@ -429,7 +430,7 @@ void SNIG<T>::_infer() {
         is_end = 0;
       }
       return is_end;
-    }).name("fetch"));*/
+    }).name("fetch"));
   }
 
   tf::Task stop = taskflow.emplace([](){ std::cout << "stop inference ...\n";}).name("stop");
@@ -437,12 +438,12 @@ void SNIG<T>::_infer() {
   //dependencies of taskflow
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     start.precede(first_fetchs[dev]);
-    //first_fetchs[dev].precede(syclflows[dev], stop);
-    //syclflows[dev].precede(fetchs[dev]);
-    //fetchs[dev].precede(syclflows[dev], stop);
+    first_fetchs[dev].precede(syclflows[dev], stop);
+    syclflows[dev].precede(fetchs[dev]);
+    fetchs[dev].precede(syclflows[dev], stop);
 
-    first_fetchs[dev].precede(syclflows[dev],stop);
-    syclflows[dev].precede(stop);
+    //first_fetchs[dev].precede(syclflows[dev],stop);
+    //syclflows[dev].precede(stop);
   }
   
   executor.run(taskflow).wait();

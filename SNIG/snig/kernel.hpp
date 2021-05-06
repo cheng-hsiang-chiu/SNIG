@@ -43,7 +43,7 @@ void snig_inference(
   T* Y_1,
   sycl::nd_item<2> item,
   const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results, 
-  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero
+  const sycl::accessor<bool, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero
 );
 //-----------------------------------------------------------------------------
 //Definition of kernel function
@@ -72,7 +72,7 @@ void snig_inference(
   T* Y_1,
   sycl::nd_item<2> item,
   const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_results,
-  const sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero) {
+  const sycl::accessor<bool, 1, sycl::access::mode::read_write, sycl::access::target::local>& p_b_is_nonzero) {
 
   /*  
   auto localRange = sycl::range<1>(16 * 16);
@@ -84,7 +84,7 @@ void snig_inference(
     sycl::access::mode::read_write, 
     sycl::access::target::local> p_b_isnonzero(localRange, cgh);
   */
-
+  
   //int row = item.get_global_id(0);
   //int col = item.get_global_id(1);
   int tid = item.get_global_linear_id();
@@ -167,24 +167,27 @@ void snig_inference(
       for (int k = beg_w; k < end_w; k += 16) {
         int roww = row_w[k];
         T valw = val_w[k];
-        assert((roww - item.get_group(0) * sec_size) > 0);
-        //p_b_results[roww - item.get_group(0) * sec_size] += (valY * valw);
-        /* 
-        auto ref = sycl::ONEAPI::atomic_ref<
-          T,
-          sycl::ONEAPI::memory_order_seq_cst,
-          sycl::ONEAPI::memory_scope::device,
-          sycl::access::address_space::local_space
-        >{p_b_results[roww - item.get_group(0) * sec_size]};
-        
-        ref.fetch_add(valY * valw);
-        */
+        if ((roww - item.get_group(0) * sec_size) >= 0 && 
+            (roww - item.get_group(0) * sec_size) < sec_size) { 
+         
+          auto ref = sycl::ONEAPI::atomic_ref<
+            T,
+            sycl::ONEAPI::memory_order_seq_cst,
+            sycl::ONEAPI::memory_scope::device,
+            sycl::access::address_space::local_space
+          >{p_b_results[roww - item.get_group(0) * sec_size]};
+          
+          ref.fetch_add(valY * valw);
+        }
+        else {
+          continue;
+        }
         //atomicAdd(&p_b_results[roww - item.get_group(0) * sec_size], valY * valw);
       }  
     }
   }
   item.barrier(sycl::access::fence_space::local_space);
-  /* 
+   
   for (size_t i = tid; i < sec_size; i += num_threads) {
     T v = std::min(T(32), std::max(p_b_results[i], T(0)));
     Y_1[item.get_group(1) * num_neurons + item.get_group(0) * sec_size + i] = v;
@@ -199,7 +202,7 @@ void snig_inference(
   if (tid == 0) {
     is_nonzero_row_1[item.get_group(1) * num_secs + item.get_group(0)] = p_b_is_nonzero[1];
   }
-  */
+  
 }
 
 

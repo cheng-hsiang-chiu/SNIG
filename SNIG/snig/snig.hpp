@@ -304,8 +304,8 @@ void SNIG<T>::_infer() {
           auto M = _batch_size * 2;
           auto K = 512 * Base<T>::_num_secs;
 
-          auto resized_batch = (M % 16 == 0) ? M : (M + 16 - M % 16);
-          auto resized_secs = (K % 16 == 0) ? K : (K + 16 - K % 16); 
+          auto resized_batch = (M % 2 == 0) ? M : (M + 2 - M % 2);
+          auto resized_secs = (K % 512 == 0) ? K : (K + 512 - K % 512); 
            
           //T* M_result;
           //bool* M_isnonzero;
@@ -339,10 +339,10 @@ void SNIG<T>::_infer() {
                
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_batch, resized_secs), 
-                sycl::range<2>(16, 16)},
+                sycl::range<2>(2, 512)},
                 [=](sycl::nd_item<2> item) {
                   //snig_inference1<T>(item);
-                  
+                   
                   snig_inference<T>(
                     si_dev_Y,
                     si_dev_is_nonzero_row,
@@ -377,7 +377,7 @@ void SNIG<T>::_infer() {
       auto dr = dev_results[dev];
       
       std::cout << "batch size = " << bsize << '\n';
-
+      /*
       tf::syclTask ident = sf.parallel_for(
         sycl::nd_range<1>{sycl::range<1>(8192), sycl::range<1>(512)}, 
         [=](sycl::nd_item<1> item) {
@@ -394,7 +394,7 @@ void SNIG<T>::_infer() {
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
-      
+      */
        
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
@@ -409,7 +409,7 @@ void SNIG<T>::_infer() {
         }
       }
       
-      infers[Base<T>::_num_layers - 1].precede(ident);
+      //infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
 

@@ -48,13 +48,13 @@ void snig_inference(
 //-----------------------------------------------------------------------------
 //Definition of kernel function
 //-----------------------------------------------------------------------------
-/*
+
 template <typename T>
 void snig_inference1(
   sycl::nd_item<2> item) {
   int tid = item.get_global_linear_id();
 }
-*/
+
 
 
 template <typename T>
@@ -85,14 +85,12 @@ void snig_inference(
     sycl::access::target::local> p_b_isnonzero(localRange, cgh);
   */
   
-  //int row = item.get_global_id(0);
-  //int col = item.get_global_id(1);
-  int tid = item.get_global_linear_id();
+  int tid = item.get_local_id(0) * 2 + item.get_local_id(1);
   ////int tid = threadIdx.y * blockDim.x + threadIdx.x;
   //r = blockIdx.x
   //s_o = blockIdx.y
   ////int num_threads = blockDim.x * blockDim.y;
-  int num_threads = 256;
+  int num_threads = 1024;
   
   //num_secs is small enough to compute by each single thread
   bool is_all_zero = true;

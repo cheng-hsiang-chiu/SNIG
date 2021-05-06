@@ -181,10 +181,10 @@ int main(int argc, char* argv[]) {
   */
 
    
-  //auto golden = snig::read_golden_binary(golden_path);
+  auto golden = snig::read_golden_binary(golden_path);
   
-  //if(snig::is_passed(result, golden)) {
-  if (snig::is_passed(result)) {
+  if(snig::is_passed(result, golden)) {
+  //if (snig::is_passed(result)) {
     std::cout << "CHALLENGE PASSED\n";
   }
   else{

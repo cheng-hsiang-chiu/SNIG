@@ -377,7 +377,7 @@ void SNIG<T>::_infer() {
       auto dr = dev_results[dev];
       
       std::cout << "batch size = " << bsize << '\n';
-      /*
+      
       tf::syclTask ident = sf.parallel_for(
         sycl::nd_range<1>{sycl::range<1>(8192), sycl::range<1>(512)}, 
         [=](sycl::nd_item<1> item) {
@@ -394,7 +394,7 @@ void SNIG<T>::_infer() {
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
-      */
+      
        
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
@@ -409,7 +409,7 @@ void SNIG<T>::_infer() {
         }
       }
       
-      //infers[Base<T>::_num_layers - 1].precede(ident);
+      infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
 

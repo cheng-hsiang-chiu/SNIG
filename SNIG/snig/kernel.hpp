@@ -152,7 +152,7 @@ void snig_inference(
      
     for (size_t j = item.get_local_id(0) + s_i * sec_size; 
          j < (s_i + 1) * sec_size; 
-         j += 16) {
+         j += 512) {
 
       T valY = Y_0[item.get_group(1) * num_neurons + j];
       if (valY == 0) {
@@ -162,7 +162,7 @@ void snig_inference(
       int beg_w = col_w[item.get_group(0) * num_neurons + j] + item.get_local_id(1);
       int end_w = col_w[item.get_group(0) * num_neurons + j + 1];
       
-      for (int k = beg_w; k < end_w; k += 16) {
+      for (int k = beg_w; k < end_w; k += 2) {
         int roww = row_w[k];
         T valw = val_w[k];
         if ((roww - item.get_group(0) * sec_size) >= 0 && 

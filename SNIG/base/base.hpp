@@ -214,13 +214,15 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
 
   //std::cout << "_num_layers = " << _num_layers << '\n'; 
   //std::cout << "_num_neurons = " << _num_neurons << '\n';
-  
+  /* 
   _max_nnz = find_max_nnz_binary(
                weight_path,
                _num_layers,
                _num_neurons
              );
-  
+  */
+  //////// _max_nnz should not be hardcoded
+  _max_nnz = 32768;
   //std::cout << " _max_nnz = " << _max_nnz << "\n\n"; 
   // total length of row and col index
   // value index should consider sizeof(T)

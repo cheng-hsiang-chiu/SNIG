@@ -338,8 +338,8 @@ void SNIG<T>::_infer() {
               auto si_bias = Base<T>::_bias;
                
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
-                sycl::range<2>(resized_batch, resized_secs), 
-                sycl::range<2>(2, 512)},
+                sycl::range<2>(resized_secs, resized_batch), 
+                sycl::range<2>(512, 2)},
                 [=](sycl::nd_item<2> item) {
                   //snig_inference1<T>(item);
                    
@@ -382,15 +382,18 @@ void SNIG<T>::_infer() {
         sycl::nd_range<1>{sycl::range<1>(8192), sycl::range<1>(512)}, 
         [=](sycl::nd_item<1> item) {
 
-          int tid = item.get_global_linear_id();
+          //int tid = item.get_global_linear_id();
+          int tid = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
           //auto reduction = [](T a, T b){ return a + b; };
-          for (int i = tid; i < bsize; i += 16 * 512) {
+          for (int i = tid; i < bsize; i += item.get_group_range(0) * item.get_local_range(0)) {
             T sum;
             for (auto index = i * nns; index < (i+1) * nns; ++index) {
-              sum += *(dY + index);
+              sum = sum + *(dY+index);
             }
-            dr[i] = sum > 0 ? 1 : 0;
+            *(dr+i) = sum > 0 ? 1 : 0;
+            item.barrier(sycl::access::fence_space::local_space);
           }
+
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");

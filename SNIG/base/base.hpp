@@ -191,7 +191,7 @@ Base<T>::Base(
   std::cout << "shared memory size = " << shared_mem_size << '\n'; 
   std::cout << "_sec_size = " << _sec_size << ", ss = " << ss << '\n';
   std::cout << "_num_secs = " << _num_secs << ", ns = " << ns << '\n';
-  std::cout << "nn = " << nn << '\n';
+  std::cout << "Base<T>::_num_neurons = " << nn << '\n';
   */
 }
 
@@ -281,6 +281,11 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
     _pad,
     _host_pinned_weight
   );
+  /* 
+  for (size_t i = 0; i < _pp_wsize*_num_layers/sizeof(int); ++i) {
+    std::cout << *(_host_pinned_weight+i) << '\n';
+  }
+  */
   
   toc();
   log("Finish reading DNN layers with ", duration(), " ms", "\n");

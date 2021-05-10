@@ -243,7 +243,7 @@ void SNIG<T>::_infer() {
   
   //Use taskflow and syclGraph to implement task graph
   tf::Taskflow taskflow("SNIG");
-  tf::Executor executor;
+  tf::Executor executor(1);
   
   std::vector<tf::Task> first_fetchs;
   std::vector<tf::Task> syclflows;
@@ -261,6 +261,7 @@ void SNIG<T>::_infer() {
   tf::Task start = taskflow.emplace([](){}).name("start");
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
+    
     first_fetchs.emplace_back(taskflow.emplace([&, dev](){
       int is_end = 1;
       size_t beg_inputs = finished_inputs.fetch_add(_batch_size);
@@ -295,31 +296,24 @@ void SNIG<T>::_infer() {
             Base<T>::_host_pinned_weight + (cur_layer + k) * Base<T>::_pp_wlen,
             Base<T>::_pp_wlen
           ).name("weight_copy"));
-         
+    
+   
           // transformed CSC weight matrix equals to CSR with exchanged row and col
           int* col_w = _dev_W[dev][k];
           int* row_w = _dev_W[dev][k] + Base<T>::_num_neurons * Base<T>::_num_secs + 1;
           T* val_w = (T*)(_dev_W[dev][k] + Base<T>::_p_w_index_len);
            
-          auto M = _batch_size * 2;
-          auto K = 512 * Base<T>::_num_secs;
+          auto M = _batch_size * 32;
+          auto K = 32 * Base<T>::_num_secs;
 
-          auto resized_batch = (M % 2 == 0) ? M : (M + 2 - M % 2);
-          auto resized_secs = (K % 512 == 0) ? K : (K + 512 - K % 512); 
+          auto resized_batch = (M % 32 == 0) ? M : (M + 32 - M % 32);
+          auto resized_secs = (K % 32 == 0) ? K : (K + 32 - K % 32); 
            
           //T* M_result;
           //bool* M_isnonzero;
-
-          //const sycl::property_list props = {sycl::property::buffer::use_host_ptr()}; 
-          //sycl::buffer<T> b_result(M_result, sycl::range<1>{Base<T>::_sec_size});
-          //sycl::buffer<bool> b_isnonzero(M_isnonzero, sycl::range<1>{2});
            
           infers.emplace_back(sf.on(
             [=](sycl::handler& cgh) { 
-              //auto p_result = b_result.get_access<sycl::access::mode::read_write>(cgh);
-              //auto p_isnonzero = b_isnonzero.get_access<sycl::access::mode::read_write>(cgh);
-              //auto localRange = sycl::range<1>(2);
-               
               sycl::accessor<T, 1, 
                 sycl::access::mode::read_write, 
                 sycl::access::target::local> p_b_result(sycl::range<1>{Base<T>::_sec_size}, cgh);
@@ -339,7 +333,7 @@ void SNIG<T>::_infer() {
                
               cgh.parallel_for<mxm_kernel>(sycl::nd_range<2>{
                 sycl::range<2>(resized_secs, resized_batch), 
-                sycl::range<2>(512, 2)},
+                sycl::range<2>(32, 32)},
                 [=](sycl::nd_item<2> item) {
                   //snig_inference1<T>(item);
                    
@@ -376,33 +370,35 @@ void SNIG<T>::_infer() {
       auto dY = _dev_Y[dev][0];
       auto dr = dev_results[dev];
       
-      std::cout << "batch size = " << bsize << '\n';
       
       tf::syclTask ident = sf.parallel_for(
-        sycl::nd_range<1>{sycl::range<1>(8192), sycl::range<1>(512)}, 
+        sycl::nd_range<1>{sycl::range<1>(5120), sycl::range<1>(512)}, 
         [=](sycl::nd_item<1> item) {
 
-          //int tid = item.get_global_linear_id();
-          int tid = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
+          int tid = item.get_global_linear_id();
+
+          if(tid >= bsize) return;
+
+          //int tid = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
           //auto reduction = [](T a, T b){ return a + b; };
-          for (int i = tid; i < bsize; i += item.get_group_range(0) * item.get_local_range(0)) {
-            T sum;
-            for (auto index = i * nns; index < (i+1) * nns; ++index) {
+            T sum = 0;
+            for (auto index = tid * nns; index < (tid+1) * nns; ++index) {
               sum = sum + *(dY+index);
             }
-            *(dr+i) = sum > 0 ? 1 : 0;
-            item.barrier(sycl::access::fence_space::local_space);
-          }
+            *(dr+tid) = sum > 0 ? 1 : 0;
+            //item.barrier(sycl::access::fence_space::local_space);
+          //}
 
           //identify<T>(dY, bsize, nns, dr, item);                                 
         }
       ).name("ident");
-      
+
        
       //dependencies of syclflow
       for (size_t cur_layer = 0; cur_layer < Base<T>::_num_layers; ++cur_layer) {
         weight_copies[cur_layer].precede(infers[cur_layer]);
-        
+
+
         if (cur_layer + _num_weight_buffers < Base<T>::_num_layers) {
           infers[cur_layer].precede(weight_copies[cur_layer + _num_weight_buffers]);
         }
@@ -415,6 +411,8 @@ void SNIG<T>::_infer() {
       infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
+
+    
 
      
     fetchs.emplace_back(taskflow.emplace([&, dev](){
@@ -451,7 +449,7 @@ void SNIG<T>::_infer() {
   
   executor.run(taskflow).wait();
 
-  //taskflow.dump(std::cout);
+  taskflow.dump(std::cout);
 
   //checkCuda(cudaSetDevice(0));
   
@@ -467,7 +465,7 @@ void SNIG<T>::_weight_alloc() {
 
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
     for (auto& each_W : W) {
-      each_W = sycl::malloc_device<int>(
+      each_W = sycl::malloc_shared<int>(
         Base<T>::_pp_wsize / sizeof(int), 
         Base<T>::queue
       );
@@ -503,12 +501,12 @@ void SNIG<T>::_input_alloc() {
   std::vector<bool*> is_nonzero_row{2, nullptr};
   
   for (size_t dev = 0; dev < Base<T>::_num_gpus; ++dev) {
-    Y[1] = sycl::malloc_device<T>(
+    Y[1] = sycl::malloc_shared<T>(
       _batch_ysize / sizeof(T), 
       Base<T>::queue
     );
 
-    is_nonzero_row[1] = sycl::malloc_device<bool>(
+    is_nonzero_row[1] = sycl::malloc_shared<bool>(
       _batch_size * Base<T>::_num_secs, 
       Base<T>::queue
     );
@@ -528,7 +526,7 @@ void SNIG<T>::_input_alloc() {
   std::cout << "Base<T>::_num_secs = " << Base<T>::_num_secs << '\n';
   std::cout << "_batch_size = " << _batch_size << '\n';
   std::cout << "_batch_ysize = " << _batch_ysize << '\n';
-  */
+  */ 
 }
 
 

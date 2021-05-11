@@ -135,7 +135,7 @@ Base<T>::Base(
   _num_neurons{num_neurons},
   _num_layers{num_layers} {
 
-  std::cout << "Base constructor\n";
+  //std::cout << "Base constructor\n";
   /* 
   sycl::platform platform = sycl::platform::get_platforms()[0];
   sycl::device device = platform.get_devices()[0];
@@ -209,7 +209,7 @@ Base<T>::~Base() {
 
 template <typename T>
 void Base<T>::_load_weight(const std::fs::path& weight_path) {
-  log("Loading the weight......");
+  //log("Loading the weight......");
   tic();
 
   //std::cout << "_num_layers = " << _num_layers << '\n'; 

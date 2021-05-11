@@ -121,7 +121,7 @@ SNIG<T>::SNIG(
   const size_t num_layers) :
   Base<T>(weight_path, bias, num_neurons_per_layer, num_layers) {
     Base<T>::log("Constructing SNIG engine......", "\n");
-    std::cout << "SNIG constructor\n";
+    //std::cout << "SNIG constructor\n";
   }
 
 
@@ -215,7 +215,7 @@ void SNIG<T>::_set_parameters(
 
 template <typename T>
 void SNIG<T>::_preprocess(const std::fs::path& input_path) {
-  Base<T>::log("Preprocessing...... ");
+  //Base<T>::log("Preprocessing...... ");
   Base<T>::tic();
 
   //weight allocation
@@ -243,7 +243,7 @@ void SNIG<T>::_infer() {
   
   //Use taskflow and syclGraph to implement task graph
   tf::Taskflow taskflow("SNIG");
-  tf::Executor executor(1);
+  tf::Executor executor;
   
   std::vector<tf::Task> first_fetchs;
   std::vector<tf::Task> syclflows;
@@ -381,11 +381,11 @@ void SNIG<T>::_infer() {
 
           //int tid = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
           //auto reduction = [](T a, T b){ return a + b; };
-            T sum = 0;
-            for (auto index = tid * nns; index < (tid+1) * nns; ++index) {
-              sum = sum + *(dY+index);
-            }
-            *(dr+tid) = sum > 0 ? 1 : 0;
+          T sum = 0;
+          for (auto index = tid * nns; index < (tid+1) * nns; ++index) {
+            sum = sum + *(dY+index);
+          }
+          *(dr+tid) = sum > 0 ? 1 : 0;
             //item.barrier(sycl::access::fence_space::local_space);
           //}
 
@@ -408,7 +408,7 @@ void SNIG<T>::_infer() {
         }
       }
       
-      infers[Base<T>::_num_layers - 1].precede(ident);
+      //infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
 
@@ -449,7 +449,7 @@ void SNIG<T>::_infer() {
   
   executor.run(taskflow).wait();
 
-  taskflow.dump(std::cout);
+  //taskflow.dump(std::cout);
 
   //checkCuda(cudaSetDevice(0));
   

@@ -266,6 +266,7 @@ void SNIG<T>::_infer() {
       int is_end = 1;
       size_t beg_inputs = finished_inputs.fetch_add(_batch_size);
       
+      //if (beg_inputs < 5000) {
       if (beg_inputs < Base<T>::_num_inputs) {
         _dev_Y[dev][0] = _source_Y + beg_inputs * Base<T>::_num_neurons;
         _dev_is_nonzero_row[dev][0] = _source_is_nonzero_row + beg_inputs * Base<T>::_num_secs;
@@ -408,6 +409,7 @@ void SNIG<T>::_infer() {
         }
       }
       
+      // uncomment the following to check the verified results. 
       //infers[Base<T>::_num_layers - 1].precede(ident);
       
     }, Base<T>::queue).name("GPU"));
@@ -419,6 +421,7 @@ void SNIG<T>::_infer() {
       int is_end = 1;
       size_t beg_inputs = finished_inputs.fetch_add(_batch_size);
       
+      //if (beg_inputs < 5000) {
       if (beg_inputs < Base<T>::_num_inputs) {
         _dev_Y[dev][0] = _source_Y + beg_inputs * Base<T>::_num_neurons;
         _dev_is_nonzero_row[dev][0] = _source_is_nonzero_row + beg_inputs * Base<T>::_num_secs;
